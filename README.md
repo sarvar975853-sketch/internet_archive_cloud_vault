@@ -21,6 +21,13 @@ without draining your system resources.
 
 ---
 
+## Windows Version is Currently in Development (I don't have a windows pc , if anyone wanna help - Welcome)
+
+### Discord - @kaala_panther
+### Instagram - https://www.instagram.com/samar_kumar_alt/
+
+---
+
 ## 🚀 How to Download & Install
 
 Since this repository contains the production-ready application, you do 
@@ -29,13 +36,10 @@ these simple steps:
 
 1. Look at the right sidebar of this page and click on the 
 **[Releases](https://github.com)** section.
-2. Download the latest release file: `AegisCloudVault-macOS.zip`.
-3. Go to your **Downloads** folder and double-click the `.zip` file to 
-extract it.
-4. Drag the extracted **AegisCloudVault.app** into your **Applications** 
-folder just like any standard Mac app.
-
-**NOTE**- Windows compatibility is in progress as I don't have a windows pc.
+2. Download the latest release file: `Aegis Vault.dmg`.
+3. Go to your **Downloads** folder and double-click the `.dmg` file to 
+open it.
+4. Drag n Drop the .app from the disk to your application folder.
 
 ---
 
