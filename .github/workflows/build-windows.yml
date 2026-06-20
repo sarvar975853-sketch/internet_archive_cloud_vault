@@ -41,7 +41,8 @@ jobs:
         run: |
           python --version
           pip list | findstr "customtkinter cryptography requests Pillow pyinstaller"
-          "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /?
+          echo "Inno Setup installed at:"
+          dir "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
         shell: cmd
 
       - name: Create Windows icon from PNG
