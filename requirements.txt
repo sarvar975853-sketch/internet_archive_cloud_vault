@@ -1,0 +1,12 @@
+# Application Core Dependencies
+customtkinter
+cryptography
+requests
+internetarchive
+Pillow
+
+# Build Tools
+pyinstaller
+
+# Optional: drag-and-drop support (macOS only, excluded on Windows)
+# tkinterdnd2
