@@ -3,7 +3,6 @@ import os
 
 block_cipher = None
 
-# SPECPATH is automatically set by PyInstaller to the spec file's directory
 _spec_dir = SPECPATH
 _parent_dir = os.path.dirname(_spec_dir)
 
@@ -14,7 +13,6 @@ a = Analysis(
     datas=[
         (os.path.join(_spec_dir, 'assets', 'icon.png'), 'assets'),
         (os.path.join(_spec_dir, 'gui', 'assets', 'cloud_hero.png'), 'gui/assets'),
-        (os.path.join(_spec_dir, 'version.py'), '.'),
     ],
     hiddenimports=[
         'customtkinter',
