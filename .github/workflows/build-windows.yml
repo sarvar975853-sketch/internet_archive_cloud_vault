@@ -33,17 +33,21 @@ jobs:
           pip install -r requirements.txt
           pip install pyinstaller
 
+      - name: Install Inno Setup
+        run: choco install innosetup -y
+        shell: cmd
+
       - name: Verify installations
         run: |
           python --version
           pip list | findstr "customtkinter cryptography requests Pillow pyinstaller"
+          "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /?
         shell: cmd
 
       - name: Create Windows icon from PNG
         run: |
           python -c "
           from PIL import Image
-          import os
           img = Image.open('assets/icon.png')
           img = img.resize((256, 256), Image.LANCZOS)
           img.save('assets/icon.ico', format='ICO', sizes=[(16,16),(32,32),(48,48),(64,64),(128,128),(256,256)])
@@ -59,15 +63,21 @@ jobs:
           dir dist\AegisVault
         shell: cmd
 
-      - name: Create distributable zip
+      - name: Build installer with Inno Setup
         run: |
-          Compress-Archive -Path dist\AegisVault\* -DestinationPath dist\AegisVault_Windows.zip
+          "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
+        shell: cmd
 
-      - name: Upload build artifact
+      - name: Verify installer
+        run: |
+          dir installer_output
+        shell: cmd
+
+      - name: Upload installer
         uses: actions/upload-artifact@v4
         with:
-          name: AegisVault-Windows
-          path: dist/AegisVault_Windows.zip
+          name: AegisVault-Windows-Installer
+          path: installer_output/AegisVault_Setup_*.exe
           retention-days: 30
           if-no-files-found: error
 
