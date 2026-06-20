@@ -94,7 +94,7 @@ class SidebarFrame(ctk.CTkFrame):
         
         version_row = ctk.CTkFrame(footer, fg_color="transparent")
         version_row.pack(fill="x")
-        ctk.CTkLabel(version_row, text="● Aegis v2.0.0",
+        ctk.CTkLabel(version_row, text="● Aegis v3.0.0",
                      font=ctk.CTkFont(size=9), text_color="#6366F1").pack(side="left")
         ctk.CTkLabel(version_row, text="● All systems operational",
                      font=ctk.CTkFont(size=9), text_color="#22C55E").pack(side="right")

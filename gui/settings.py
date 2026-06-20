@@ -184,7 +184,7 @@ class SettingsWindow(ctk.CTkToplevel):
                      font=ctk.CTkFont(size=24, weight="bold"),
                      text_color=COLOR_TEXT_MAIN).pack(pady=(0, 4))
         
-        ctk.CTkLabel(info_card, text="Version 2.0.0",
+        ctk.CTkLabel(info_card, text="Version 3.0.0",
                      font=ctk.CTkFont(size=12),
                      text_color=COLOR_TEXT_ACCENT).pack()
         

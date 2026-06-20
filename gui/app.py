@@ -32,7 +32,7 @@ class AppGUI(DnDWindow):
 
         ctk.set_appearance_mode("dark")
 
-        self.title("Aegis Vault v2.0.0 – Modern Cloud Vault")
+        self.title("Aegis Vault v3.0.0 – Modern Cloud Vault")
         self.geometry("1100x740")
         self.minsize(960, 640)
 

@@ -2,7 +2,7 @@
 ; Requires Inno Setup 6.0+
 
 #define MyAppName "Aegis Vault"
-#define MyAppVersion "2.0.0"
+#define MyAppVersion "3.0.0"
 #define MyAppPublisher "Samar"
 #define MyAppURL "https://github.com/sarvar975853-sketch/internet-archive-cloud-vault"
 #define MyAppExeName "AegisVault.exe"

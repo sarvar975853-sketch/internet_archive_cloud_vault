@@ -97,8 +97,8 @@ app = BUNDLE(
     bundle_identifier='com.aegisvault.app',
     info_plist={
         'CFBundleDisplayName': 'Aegis Vault',
-        'CFBundleShortVersionString': '2.0.0',
-        'CFBundleVersion': '2.0.0',
+        'CFBundleShortVersionString': '3.0.0',
+        'CFBundleVersion': '3.0.0',
         'NSHighResolutionCapable': True,
         'NSRequiresAquaSystemAppearance': False,
         'LSMinimumSystemVersion': '10.15',

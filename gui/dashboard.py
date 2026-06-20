@@ -45,7 +45,7 @@ class DashboardFrame(ctk.CTkFrame):
         banner_content = ctk.CTkFrame(banner, fg_color="transparent")
         banner_content.pack(fill="x", padx=22, pady=18)
 
-        ctk.CTkLabel(banner_content, text="Aegis Vault v2.0.0",
+        ctk.CTkLabel(banner_content, text="Aegis Vault v3.0.0",
                      font=ctk.CTkFont(size=20, weight="bold"),
                      text_color=COLOR_TEXT_MAIN).pack(anchor="w")
         ctk.CTkLabel(banner_content,

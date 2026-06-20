@@ -1,13 +1,15 @@
 import sys
 import os
 
-# Add parent dir to path so absolute imports like 'aegis_vault.core' work
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+if getattr(sys, 'frozen', False):
+    _base = sys._MEIPASS
+else:
+    _base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+sys.path.insert(0, _base)
 
 from aegis_vault.gui.app import AppGUI
 
-# Import version from root directory
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from version import print_version_info
 
 if __name__ == "__main__":
