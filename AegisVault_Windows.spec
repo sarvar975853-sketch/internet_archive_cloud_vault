@@ -14,6 +14,7 @@ a = Analysis(
     datas=[
         (os.path.join(_spec_dir, 'assets', 'icon.png'), 'assets'),
         (os.path.join(_spec_dir, 'gui', 'assets', 'cloud_hero.png'), 'gui/assets'),
+        (os.path.join(_spec_dir, 'version.py'), '.'),
     ],
     hiddenimports=[
         'customtkinter',
