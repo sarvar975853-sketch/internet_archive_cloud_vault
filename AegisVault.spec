@@ -3,7 +3,6 @@ import os
 
 block_cipher = None
 
-# SPECPATH is set by PyInstaller to the directory containing this .spec file
 _spec_dir = SPECPATH
 _parent_dir = os.path.dirname(_spec_dir)
 
@@ -73,7 +72,7 @@ exe = EXE(
     console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
-    target_arch=None,
+    target_arch='universal2',
     codesign_identity=None,
     entitlements_file=None,
     icon=os.path.join(_spec_dir, 'assets', 'icon.icns'),
