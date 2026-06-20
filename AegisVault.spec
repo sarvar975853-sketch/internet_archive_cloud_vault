@@ -50,7 +50,7 @@ a = Analysis(
     ],
     hookspath=[],
     hooksconfig={},
-    runtime_hooks=[],
+    runtime_hooks=[os.path.join(_spec_dir, 'runtime_hook.py')],
     excludes=['tkinterdnd2'],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
