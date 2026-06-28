@@ -12,6 +12,7 @@ COLOR_SELECTED_BG  = THEME['selected_bg']
 COLOR_SELECTED_FG  = THEME['selected_fg']
 COLOR_CARD_BG      = THEME['card_bg']
 COLOR_CARD_BORDER  = THEME['card_border']
+COLOR_SUCCESS      = THEME['success']
 
 def apply_hover_bump(button, base_w, base_h):
     button.bind("<Enter>", lambda event: button.configure(
