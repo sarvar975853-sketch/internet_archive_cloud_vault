@@ -4,6 +4,7 @@ cryptography
 requests
 internetarchive
 Pillow
+mega-public-client
 
 # Build Tools
 pyinstaller

@@ -1,23 +1,23 @@
 import os
 import customtkinter as ctk
-from tkinter import messagebox
+from tkinter import filedialog, messagebox
+from aegis_vault.gui.theme import THEME
+from aegis_vault.gui.hover import apply_bubble_hover
 
-# ─── Colors (matching the app theme) ────────────────────────────────────────
-COLOR_INPUT_BG     = "#09090B"
-COLOR_CARD_BG      = "#18181B"
-COLOR_CARD_BORDER  = "#27272A"
-COLOR_TEXT_MAIN    = "#F4F4F5"
-COLOR_TEXT_SUB     = "#A1A1AA"
-COLOR_TEXT_ACCENT  = "#818CF8"
-COLOR_TEXT_DIM     = "#52525B"
-COLOR_BTN_PRIMARY  = "#4F46E5"
-COLOR_BTN_HOVER    = "#6366F1"
-COLOR_PRIMARY      = "#6366F1"
-COLOR_SUCCESS      = "#22C55E"
-COLOR_ERROR        = "#EF4444"
-COLOR_WARN         = "#F59E0B"
+COLOR_INPUT_BG     = THEME['input_bg']
+COLOR_CARD_BG      = THEME['card_bg']
+COLOR_CARD_BORDER  = THEME['card_border']
+COLOR_TEXT_MAIN    = THEME['text_main']
+COLOR_TEXT_SUB     = THEME['text_sub']
+COLOR_TEXT_ACCENT  = THEME['text_accent']
+COLOR_TEXT_DIM     = THEME['text_dim']
+COLOR_BTN_PRIMARY  = THEME['primary']
+COLOR_BTN_HOVER    = THEME['secondary']
+COLOR_PRIMARY      = THEME['primary']
+COLOR_SUCCESS      = THEME['success']
+COLOR_ERROR        = THEME['error']
+COLOR_WARN         = THEME['warning']
 
-# Provider badges: (emoji, label, color)
 PROVIDER_INFO = {
     "google_drive": ("☁️", "Google Drive", "#4285F4"),
     "mediafire":    ("🔥", "Mediafire", "#3364FF"),
@@ -25,37 +25,18 @@ PROVIDER_INFO = {
     "dropbox":      ("📘", "Dropbox", "#0061FF"),
     "onedrive":     ("☁️", "OneDrive", "#0078D4"),
     "mega":         ("🔴", "MEGA", "#D9272E"),
+    "megadb":       ("🗃️", "MegaDB", "#FF6B00"),
     "pcloud":       ("💾", "pCloud", "#00A2FF"),
     "wetransfer":   ("✉️", "WeTransfer", "#409FFF"),
     "box":          ("📦", "Box", "#0061D5"),
     "sendspace":    ("🚀", "SendSpace", "#FF6B00"),
     "zippyshare":   ("⚡", "ZippyShare", "#FF6B35"),
     "fourshared":   ("4️⃣", "4shared", "#8CC63F"),
-    "direct":       ("🌐", "Direct Link", "#A1A1AA"),
+    "direct":       ("🌐", "Direct Link", COLOR_TEXT_SUB),
 }
 
 
-def apply_hover_bump(button, base_w, base_h):
-    button.bind("<Enter>", lambda event: button.configure(
-        width=base_w + 10,
-        height=base_h + 3,
-        border_width=1,
-        border_color="#818CF8"
-    ))
-    button.bind("<Leave>", lambda event: button.configure(
-        width=base_w,
-        height=base_h,
-        border_width=0
-    ))
-
-
 class URLUploadFrame(ctk.CTkFrame):
-    """
-    GUI tab for uploading files to the vault from remote URLs.
-    Supports Google Drive, Mediafire, Terabox, and direct links.
-    Flow: User pastes URL → file downloads to temp → encrypted → uploaded to IA.
-    """
-
     def __init__(self, master, queue_worker, storage_engine, crypto_engine):
         super().__init__(master, fg_color="transparent")
         self.queue_worker = queue_worker
@@ -65,17 +46,18 @@ class URLUploadFrame(ctk.CTkFrame):
         self._total_urls = 0
         self._completed_urls = 0
         self._no_password = False
+        self._download_only = False
+        self._save_dir = ""
 
         self.build_ui()
 
     def build_ui(self):
-        # ── Header ───────────────────────────────────────────────────────
         header = ctk.CTkFrame(self, fg_color="transparent")
         header.pack(fill="x", padx=20, pady=(15, 5))
 
         title = ctk.CTkLabel(
             header,
-            text="🔗  Upload from URL",
+            text="🔗  URL Transfer",
             font=ctk.CTkFont(size=18, weight="bold"),
             text_color=COLOR_TEXT_MAIN,
         )
@@ -83,13 +65,12 @@ class URLUploadFrame(ctk.CTkFrame):
 
         desc = ctk.CTkLabel(
             header,
-            text="Paste any download link — Google Drive, Dropbox, OneDrive, Mediafire, Terabox, and more!",
+            text="Download from Google Drive, Dropbox, Mediafire, MEGA, Terabox, MegaDB & 12+ providers",
             font=ctk.CTkFont(size=12),
             text_color=COLOR_TEXT_SUB,
         )
         desc.pack(side="left", padx=(15, 0))
 
-        # ── URL Input Area ───────────────────────────────────────────────
         url_frame = ctk.CTkFrame(
             self,
             fg_color=COLOR_CARD_BG,
@@ -111,18 +92,18 @@ class URLUploadFrame(ctk.CTkFrame):
         self.url_entry = ctk.CTkEntry(
             url_inner,
             height=42,
-            placeholder_text="Paste URL here... (Google Drive, Dropbox, OneDrive, Mediafire, Terabox, and more)",
+            placeholder_text="Paste URL here... (Google Drive, Dropbox, Mediafire, Terabox, etc.)",
             font=ctk.CTkFont(size=13),
             fg_color=COLOR_INPUT_BG,
-            border_color="#27272A",
+            border_color=THEME['border_subtle'],
             border_width=1,
             corner_radius=10,
             text_color=COLOR_TEXT_MAIN,
-            placeholder_text_color="#52525B",
+            placeholder_text_color=COLOR_TEXT_DIM,
         )
         self.url_entry.grid(row=0, column=1, sticky="ew")
         self.url_entry.bind("<FocusIn>", lambda e: self.url_entry.configure(border_color=COLOR_TEXT_ACCENT))
-        self.url_entry.bind("<FocusOut>", lambda e: self.url_entry.configure(border_color="#27272A"))
+        self.url_entry.bind("<FocusOut>", lambda e: self.url_entry.configure(border_color=THEME['border_subtle']))
         self.url_entry.bind("<Return>", lambda e: self.add_url())
 
         add_btn = ctk.CTkButton(
@@ -137,33 +118,27 @@ class URLUploadFrame(ctk.CTkFrame):
             command=self.add_url,
         )
         add_btn.grid(row=0, column=2, padx=(8, 0))
+        apply_bubble_hover(add_btn, glow_color=COLOR_PRIMARY)
 
-        # ── Provider badges row ──────────────────────────────────────────
-        ctk.CTkLabel(self, text="✨ Supported Platforms:",
-                     font=ctk.CTkFont(size=10, weight="bold"),
-                     text_color="#71717A").pack(anchor="w", padx=25, pady=(6, 2))
-        
         badges_frame = ctk.CTkFrame(self, fg_color="transparent")
-        badges_frame.pack(fill="x", padx=25, pady=(0, 8))
+        badges_frame.pack(fill="x", padx=25, pady=(2, 6))
 
-        # Show top 6 most common providers
-        top_providers = ["google_drive", "dropbox", "onedrive", "mediafire", "terabox", "direct"]
+        top_providers = ["google_drive", "dropbox", "onedrive", "mediafire", "terabox", "mega", "direct"]
         for key in top_providers:
             if key in PROVIDER_INFO:
                 emoji, label, color = PROVIDER_INFO[key]
                 badge = ctk.CTkLabel(
                     badges_frame,
                     text=f"{emoji} {label}",
-                    font=ctk.CTkFont(size=10),
+                    font=ctk.CTkFont(size=9),
                     text_color=color,
-                    fg_color="#18181B",
+                    fg_color=THEME['glass_overlay'],
                     corner_radius=6,
-                    padx=7,
+                    padx=6,
                     pady=2,
                 )
-                badge.pack(side="left", padx=(0, 6))
+                badge.pack(side="left", padx=(0, 4))
 
-        # ── Queued URLs List ─────────────────────────────────────────────
         queue_label = ctk.CTkLabel(
             self,
             text="Queued URLs",
@@ -174,7 +149,7 @@ class URLUploadFrame(ctk.CTkFrame):
 
         self.queue_frame = ctk.CTkScrollableFrame(
             self,
-            height=130,
+            height=100,
             fg_color=COLOR_CARD_BG,
             corner_radius=10,
             border_width=1,
@@ -186,53 +161,121 @@ class URLUploadFrame(ctk.CTkFrame):
         self.empty_lbl = ctk.CTkLabel(
             self.queue_frame,
             text="No URLs queued yet. Paste a link above and click ＋ Add.",
-            text_color="#52525B",
+            text_color=COLOR_TEXT_DIM,
             font=ctk.CTkFont(size=12),
         )
         self.empty_lbl.grid(row=0, column=0, pady=20)
 
-        # ── Target Folder + Password ─────────────────────────────────────
-        config_frame = ctk.CTkFrame(self, fg_color="transparent")
-        config_frame.pack(fill="x", padx=20, pady=(0, 8))
-        config_frame.grid_columnconfigure(0, weight=1)
-        config_frame.grid_columnconfigure(1, weight=1)
+        # ── Mode Toggle ─────────────────────────────────────────────────
+        mode_card = ctk.CTkFrame(self, fg_color=COLOR_CARD_BG, corner_radius=12,
+                                  border_width=1, border_color=COLOR_CARD_BORDER)
+        mode_card.pack(fill="x", padx=20, pady=(0, 8))
+
+        mode_inner = ctk.CTkFrame(mode_card, fg_color="transparent")
+        mode_inner.pack(fill="x", padx=15, pady=10)
+
+        ctk.CTkLabel(mode_inner, text="Mode:",
+                     font=ctk.CTkFont(size=12, weight="bold"),
+                     text_color=COLOR_TEXT_MAIN).pack(side="left", padx=(0, 10))
+
+        self._mode_var = ctk.StringVar(value="upload")
+
+        self.upload_mode_rb = ctk.CTkRadioButton(
+            mode_inner, text="⬆ Upload to Vault",
+            variable=self._mode_var, value="upload",
+            command=self._on_mode_change,
+            font=ctk.CTkFont(size=11),
+            text_color=COLOR_TEXT_MAIN,
+            fg_color=COLOR_PRIMARY
+        )
+        self.upload_mode_rb.pack(side="left", padx=(0, 15))
+
+        self.download_mode_rb = ctk.CTkRadioButton(
+            mode_inner, text="📥 Download to Disk",
+            variable=self._mode_var, value="download",
+            command=self._on_mode_change,
+            font=ctk.CTkFont(size=11),
+            text_color=COLOR_TEXT_MAIN,
+            fg_color=COLOR_PRIMARY
+        )
+        self.download_mode_rb.pack(side="left")
+
+        # ── Config Area (folder + password or save dir) ──────────────────
+        self.config_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.config_frame.pack(fill="x", padx=20, pady=(0, 8))
+        self.config_frame.grid_columnconfigure(0, weight=1)
+        self.config_frame.grid_columnconfigure(1, weight=1)
 
         self.bucket_entry = ctk.CTkEntry(
-            config_frame,
-            height=40,
+            self.config_frame,
+            height=38,
             placeholder_text="Target Folder Name (e.g. my-vault)",
             font=ctk.CTkFont(size=12),
             fg_color=COLOR_INPUT_BG,
-            border_color="#27272A",
+            border_color=THEME['border_subtle'],
             border_width=1,
             corner_radius=10,
             text_color=COLOR_TEXT_MAIN,
-            placeholder_text_color="#52525B",
+            placeholder_text_color=COLOR_TEXT_DIM,
         )
         self.bucket_entry.grid(row=0, column=0, sticky="ew", padx=(0, 8))
 
         self.pass_entry = ctk.CTkEntry(
-            config_frame,
-            height=40,
-            placeholder_text="Encryption Password",
+            self.config_frame,
+            height=38,
+            placeholder_text="Encryption Password (optional for unencrypted)",
             show="•",
             font=ctk.CTkFont(size=12),
             fg_color=COLOR_INPUT_BG,
-            border_color="#27272A",
+            border_color=THEME['border_subtle'],
             border_width=1,
             corner_radius=10,
             text_color=COLOR_TEXT_MAIN,
-            placeholder_text_color="#52525B",
+            placeholder_text_color=COLOR_TEXT_DIM,
         )
         self.pass_entry.grid(row=0, column=1, sticky="ew")
 
-        # ── No Password Toggle ───────────────────────────────────────────
+        # Save dir row (hidden by default, shown in download mode)
+        self.save_dir_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.save_dir_frame.pack(fill="x", padx=20, pady=(0, 8))
+
+        self.save_dir_entry = ctk.CTkEntry(
+            self.save_dir_frame,
+            height=38,
+            placeholder_text="Save location (click Browse to select folder)",
+            font=ctk.CTkFont(size=12),
+            fg_color=COLOR_INPUT_BG,
+            border_color=THEME['border_subtle'],
+            border_width=1,
+            corner_radius=10,
+            text_color=COLOR_TEXT_MAIN,
+            placeholder_text_color=COLOR_TEXT_DIM,
+            state="disabled"
+        )
+        self.save_dir_entry.pack(side="left", fill="x", expand=True, padx=(0, 8))
+
+        self.browse_btn = ctk.CTkButton(
+            self.save_dir_frame,
+            text="📁 Browse",
+            width=100, height=38,
+            corner_radius=10,
+            font=ctk.CTkFont(size=12, weight="bold"),
+            fg_color=COLOR_BTN_PRIMARY,
+            hover_color=COLOR_BTN_HOVER,
+            command=self._pick_save_dir
+        )
+        self.browse_btn.pack(side="right")
+        apply_bubble_hover(self.browse_btn, glow_color=COLOR_PRIMARY)
+
+        # Initially hidden
+        self.save_dir_frame.pack_forget()
+
         toggle_frame = ctk.CTkFrame(self, fg_color="transparent")
         toggle_frame.pack(fill="x", padx=20, pady=(0, 8))
 
         self.no_pass_toggle = ctk.CTkSwitch(
             toggle_frame,
-            text="Upload without password (unencrypted)",
+            text="Upload without encryption (unencrypted)",
             font=ctk.CTkFont(size=12),
             text_color=COLOR_TEXT_SUB,
             fg_color=COLOR_CARD_BORDER,
@@ -243,7 +286,6 @@ class URLUploadFrame(ctk.CTkFrame):
         )
         self.no_pass_toggle.pack(side="left")
 
-        # ── Progress ─────────────────────────────────────────────────────
         self.progress_bar = ctk.CTkProgressBar(self, height=6, corner_radius=3)
         self.progress_bar.pack(fill="x", padx=20, pady=(4, 2))
         self.progress_bar.set(0)
@@ -256,47 +298,78 @@ class URLUploadFrame(ctk.CTkFrame):
         )
         self.status_lbl.pack(pady=(0, 4))
 
-        # ── Action Buttons ───────────────────────────────────────────────
         btn_frame = ctk.CTkFrame(self, fg_color="transparent")
         btn_frame.pack(fill="x", padx=20, pady=(0, 15))
 
-        self.upload_btn = ctk.CTkButton(
+        self.action_btn = ctk.CTkButton(
             btn_frame,
             text="🔒  Download, Encrypt & Upload All",
             height=44,
             corner_radius=12,
             font=ctk.CTkFont(size=14, weight="bold"),
             fg_color=COLOR_PRIMARY,
-            hover_color="#4F46E5",
-            command=self.start_url_upload,
+            hover_color=THEME['secondary'],
+            command=self.start_action,
         )
-        self.upload_btn.pack(side="left", expand=True, fill="x", padx=(0, 8))
-        apply_hover_bump(self.upload_btn, 300, 44)
+        self.action_btn.pack(side="left", expand=True, fill="x", padx=(0, 8))
+        apply_bubble_hover(self.action_btn, glow_color=COLOR_PRIMARY)
 
         clear_btn = ctk.CTkButton(
             btn_frame,
-            text="🗑  Clear Queue",
+            text="🗑  Clear",
             height=44,
-            width=140,
+            width=100,
             corner_radius=12,
             font=ctk.CTkFont(size=13),
-            fg_color="#3F3F46",
-            hover_color="#52525B",
+            fg_color=COLOR_CARD_BG,
+            hover_color=THEME['hover_subtle'],
+            text_color=COLOR_TEXT_SUB,
+            border_width=1,
+            border_color=COLOR_CARD_BORDER,
             command=self.clear_queue,
         )
         clear_btn.pack(side="right")
-        apply_hover_bump(clear_btn, 140, 44)
+        apply_bubble_hover(clear_btn, glow_color=COLOR_ERROR)
+
+    # ─── Mode Handling ──────────────────────────────────────────────────
+    def _on_mode_change(self):
+        mode = self._mode_var.get()
+        if mode == "download":
+            self._download_only = True
+            self.save_dir_frame.pack(fill="x", padx=20, pady=(0, 8), after=self.config_frame)
+            self.config_frame.pack_forget()
+            self.no_pass_toggle.pack_forget()
+            self.action_btn.configure(
+                text="📥  Download All to Disk",
+                fg_color=THEME['success'],
+                hover_color=THEME['accent_cyan'],
+            )
+        else:
+            self._download_only = False
+            self.save_dir_frame.pack_forget()
+            self.config_frame.pack(fill="x", padx=20, pady=(0, 8))
+            self.no_pass_toggle.pack(fill="x", padx=20, pady=(0, 8))
+            self._toggle_password_mode()
 
     def _toggle_password_mode(self):
         self._no_password = self.no_pass_toggle.get() == 1
         if self._no_password:
-            self.pass_entry.configure(state="disabled", fg_color="#18181B")
-            self.upload_btn.configure(text="⬆  Download & Upload All (Unencrypted)")
+            self.pass_entry.configure(state="disabled", fg_color=THEME['glass_overlay'])
+            self.action_btn.configure(text="⬆  Download & Upload (Unencrypted)")
         else:
             self.pass_entry.configure(state="normal", fg_color=COLOR_INPUT_BG)
-            self.upload_btn.configure(text="🔒  Download, Encrypt & Upload All")
+            self.action_btn.configure(text="🔒  Download, Encrypt & Upload All")
 
-    # ─── URL Management ──────────────────────────────────────────────────
+    def _pick_save_dir(self):
+        d = filedialog.askdirectory(title="Select download folder")
+        if d:
+            self._save_dir = d
+            self.save_dir_entry.configure(state="normal")
+            self.save_dir_entry.delete(0, "end")
+            self.save_dir_entry.insert(0, d)
+            self.save_dir_entry.configure(state="disabled")
+
+    # ─── URL Management ─────────────────────────────────────────────────
     def add_url(self):
         url = self.url_entry.get().strip()
         if not url:
@@ -333,7 +406,7 @@ class URLUploadFrame(ctk.CTkFrame):
             self.empty_lbl = ctk.CTkLabel(
                 self.queue_frame,
                 text="No URLs queued yet. Paste a link above and click ＋ Add.",
-                text_color="#52525B",
+                text_color=COLOR_TEXT_DIM,
                 font=ctk.CTkFont(size=12),
             )
             self.empty_lbl.grid(row=0, column=0, pady=20)
@@ -344,70 +417,96 @@ class URLUploadFrame(ctk.CTkFrame):
             row.grid(row=i, column=0, sticky="ew", pady=2, padx=5)
             row.grid_columnconfigure(1, weight=1)
 
-            # Provider badge
             from aegis_vault.core.url_downloader import URLDownloader
             provider = URLDownloader._detect_provider(url)
-            info = PROVIDER_INFO.get(provider, ("🌐", "Link", "#A1A1AA"))
+            info = PROVIDER_INFO.get(provider, ("🌐", "Link", COLOR_TEXT_SUB))
             emoji, label, color = info
 
             badge = ctk.CTkLabel(
                 row,
                 text=f"{emoji} {label}",
-                font=ctk.CTkFont(size=11),
+                font=ctk.CTkFont(size=10),
                 text_color=color,
-                fg_color="#09090B",
+                fg_color=THEME['input_bg'],
                 corner_radius=4,
-                width=100,
+                width=90,
             )
             badge.grid(row=0, column=0, padx=(0, 8))
 
-            # Truncated URL
-            display_url = url if len(url) <= 70 else url[:67] + "..."
+            display_url = url if len(url) <= 65 else url[:62] + "..."
             url_lbl = ctk.CTkLabel(
                 row,
                 text=display_url,
-                font=ctk.CTkFont(size=12),
+                font=ctk.CTkFont(size=11),
                 text_color=COLOR_TEXT_MAIN,
                 anchor="w",
             )
             url_lbl.grid(row=0, column=1, sticky="w")
 
-            # Remove button
             remove_btn = ctk.CTkButton(
                 row,
                 text="✕",
-                width=28,
-                height=28,
+                width=26,
+                height=26,
                 corner_radius=6,
-                font=ctk.CTkFont(size=13),
+                font=ctk.CTkFont(size=12),
                 fg_color="transparent",
-                hover_color="#EF4444",
-                text_color="#A1A1AA",
+                hover_color=COLOR_ERROR,
+                text_color=COLOR_TEXT_DIM,
                 command=lambda u=url: self.remove_url(u),
             )
-            remove_btn.grid(row=0, column=2, padx=(5, 0))
+            remove_btn.grid(row=0, column=2, padx=(4, 0))
 
-    # ─── Upload Pipeline ─────────────────────────────────────────────────
-    def start_url_upload(self):
-        bucket = self.bucket_entry.get().strip().lower().replace(" ", "-")
-        password = self.pass_entry.get()
-
+    # ─── Action Start ───────────────────────────────────────────────────
+    def start_action(self):
         if not self.queued_urls:
             messagebox.showerror("Error", "No URLs in the queue. Add at least one URL.")
             return
-        if not bucket:
-            messagebox.showerror("Error", "Target folder name is required.")
-            return
-        if not self._no_password and not password:
-            messagebox.showerror("Error", "Encryption password is required (or toggle 'Upload without password').")
+
+        if self._download_only:
+            self._start_download_only()
+        else:
+            self._start_upload()
+
+    def _start_download_only(self):
+        if not self._save_dir:
+            messagebox.showerror("Error", "Select a save folder first.")
             return
 
-        self.upload_btn.configure(state="disabled", text="⟳  Processing...")
+        self.action_btn.configure(state="disabled", text="⟳  Downloading...")
         self.progress_bar.set(0)
         self._total_urls = len(self.queued_urls)
         self._completed_urls = 0
 
-        # Submit each URL as a separate background task
+        for url in self.queued_urls:
+            self.queue_worker.submit_task(
+                self._process_download_only, url, self._save_dir
+            )
+
+        total = len(self.queued_urls)
+        self.queued_urls.clear()
+        self._refresh_queue_list()
+        self.status_lbl.configure(
+            text=f"Downloading {total} file(s) to disk...",
+            text_color=COLOR_TEXT_ACCENT,
+        )
+
+    def _start_upload(self):
+        bucket = self.bucket_entry.get().strip().lower().replace(" ", "-")
+        password = self.pass_entry.get()
+
+        if not bucket:
+            messagebox.showerror("Error", "Target folder name is required.")
+            return
+        if not self._no_password and not password:
+            messagebox.showerror("Error", "Encryption password is required (or toggle unencrypted).")
+            return
+
+        self.action_btn.configure(state="disabled", text="⟳  Processing...")
+        self.progress_bar.set(0)
+        self._total_urls = len(self.queued_urls)
+        self._completed_urls = 0
+
         for url in self.queued_urls:
             self.queue_worker.submit_task(
                 self._process_url_upload, url, password, bucket, self._no_password
@@ -421,13 +520,26 @@ class URLUploadFrame(ctk.CTkFrame):
             text_color=COLOR_TEXT_ACCENT,
         )
 
+    # ─── Background Tasks ───────────────────────────────────────────────
+    def _process_download_only(self, url: str, save_dir: str) -> str:
+        from aegis_vault.core.url_downloader import URLDownloader
+
+        downloader = URLDownloader(download_dir=save_dir)
+        result = downloader.download(url)
+
+        if not result["success"]:
+            raise Exception(f"Download failed: {result['error']}")
+
+        file_path = result["file_path"]
+        file_name = result["file_name"]
+        file_size = result["file_size"]
+
+        return f"✓ Saved {file_name} ({self._fmt_size(file_size)}) → {save_dir}"
+
     def _process_url_upload(self, url: str, password: str, bucket: str, no_password: bool) -> str:
-        """Background task: download from URL → encrypt → upload to IA."""
         from aegis_vault.core.url_downloader import URLDownloader
 
         downloader = URLDownloader()
-
-        # Step 1: Download file from URL
         result = downloader.download(url)
 
         if not result["success"]:
@@ -437,7 +549,6 @@ class URLUploadFrame(ctk.CTkFrame):
         original_filename = result["file_name"]
 
         if no_password:
-            # Upload without encryption
             try:
                 ia_url = self.storage.upload_file_raw(file_path, original_filename, bucket)
                 return f"✓ Uploaded {original_filename} ({self._fmt_size(result['file_size'])}) → {ia_url}"
@@ -448,7 +559,6 @@ class URLUploadFrame(ctk.CTkFrame):
                 except Exception:
                     pass
         else:
-            # Encrypt then upload
             temp_encrypted_path = file_path + ".ia_crypt"
             try:
                 self.crypto.encrypt_file(file_path, password, temp_encrypted_path)
@@ -466,7 +576,6 @@ class URLUploadFrame(ctk.CTkFrame):
 
     @staticmethod
     def _fmt_size(size_bytes: int) -> str:
-        """Human-readable file size."""
         if size_bytes < 1024:
             return f"{size_bytes} B"
         elif size_bytes < 1024 * 1024:
@@ -476,23 +585,27 @@ class URLUploadFrame(ctk.CTkFrame):
         else:
             return f"{size_bytes / (1024 * 1024 * 1024):.2f} GB"
 
-    # ─── Task Update Handler ─────────────────────────────────────────────
+    # ─── Task Update Handler ────────────────────────────────────────────
     def on_task_update(self, status, result):
         self._completed_urls += 1
         progress = self._completed_urls / max(self._total_urls, 1)
         self.progress_bar.set(progress)
-        
+
         if status == "success":
             self.status_lbl.configure(text=str(result), text_color=COLOR_SUCCESS)
         elif status == "error":
             self.status_lbl.configure(text=f"❌ {result}", text_color=COLOR_ERROR)
 
         if self._completed_urls >= self._total_urls:
-            self.upload_btn.configure(
-                state="normal", text="🔒  Download, Encrypt & Upload All"
+            mode_text = "downloaded" if self._download_only else "uploaded"
+            self.action_btn.configure(
+                state="normal",
+                text="📥  Download All to Disk" if self._download_only
+                     else ("⬆  Download & Upload (Unencrypted)" if self._no_password
+                           else "🔒  Download, Encrypt & Upload All")
             )
             if status == "success":
                 self.status_lbl.configure(
-                    text=f"✓ All {self._total_urls} URL(s) processed successfully!",
+                    text=f"✓ All {self._total_urls} URL(s) {mode_text} successfully!",
                     text_color=COLOR_SUCCESS
                 )

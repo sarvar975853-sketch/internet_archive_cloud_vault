@@ -16,6 +16,7 @@ Supported providers:
 
 import os
 import re
+import json
 import tempfile
 from typing import Optional
 import requests
@@ -74,6 +75,10 @@ class URLDownloader:
                 return self._download_mediafire(url, progress_callback)
             elif provider == "terabox":
                 return self._download_terabox(url, progress_callback)
+            elif provider == "mega":
+                return self._download_mega(url, progress_callback)
+            elif provider == "megadb":
+                return self._download_megadb(url, progress_callback)
             elif provider == "dropbox":
                 return self._download_dropbox(url, progress_callback)
             elif provider == "onedrive":
@@ -119,6 +124,8 @@ class URLDownloader:
             return "zippyshare"
         if "4shared.com" in host:
             return "fourshared"
+        if "megadb.net" in host:
+            return "megadb"
         return "direct"
 
     # ─── Google Drive ────────────────────────────────────────────────────
@@ -289,6 +296,69 @@ class URLDownloader:
         filename = self._filename_from_headers(resp) or self._filename_from_url(download_url) or "terabox_file"
         return self._stream_to_file(resp, filename, progress_callback)
 
+    # ─── MEGA ────────────────────────────────────────────────────────────
+    def _download_mega(self, url: str, progress_callback) -> dict:
+        """
+        Download files from MEGA using mega-public-client library.
+        Supports public file and folder links with automatic decryption.
+        """
+        try:
+            from mega_client import MegaClient
+        except ImportError:
+            return self._error(
+                "MEGA downloads require mega-public-client. "
+                "Install it: pip install mega-public-client"
+            )
+
+        logger.info(f"MEGA: Downloading from {url[:60]}...")
+
+        try:
+            with MegaClient() as client:
+                result = client.download_file(url, self.download_dir)
+
+            filename = os.path.basename(result.path)
+            file_size = os.path.getsize(result.path)
+
+            logger.info(f"MEGA: Downloaded {filename} ({file_size} bytes)")
+
+            return {
+                "success": True,
+                "file_path": result.path,
+                "file_name": filename,
+                "file_size": file_size,
+                "error": "",
+            }
+
+        except Exception as e:
+            err_msg = str(e)
+            logger.error(f"MEGA download failed: {err_msg}")
+
+            if "not found" in err_msg.lower() or "404" in err_msg:
+                return self._error("MEGA: File not found or link expired.")
+            elif "access" in err_msg.lower() or "denied" in err_msg.lower():
+                return self._error("MEGA: Access denied. File may be private.")
+            elif "decrypt" in err_msg.lower():
+                return self._error("MEGA: Decryption failed. Key may be invalid.")
+            else:
+                return self._error(f"MEGA download failed: {err_msg}")
+
+    # ─── MegaDB ─────────────────────────────────────────────────────────
+    def _download_megadb(self, url: str, progress_callback) -> dict:
+        """
+        MegaDB (megadb.net) uses Cloudflare Turnstile protection which requires
+        a full browser to solve. Direct HTTP downloads are not possible.
+
+        Returns a helpful error message with a workaround.
+        """
+        return self._error(
+            "MegaDB uses Cloudflare Turnstile protection that cannot be "
+            "bypassed with direct HTTP requests.\n\n"
+            "Workaround:\n"
+            "1. Open the MegaDB link in your browser\n"
+            "2. Solve the Turnstile challenge and download the file\n"
+            "3. Use 'Upload to Vault' to upload the downloaded file"
+        )
+
     # ─── Dropbox ─────────────────────────────────────────────────────────
     def _download_dropbox(self, url: str, progress_callback) -> dict:
         """
@@ -348,8 +418,11 @@ class URLDownloader:
     def _download_direct(self, url: str, progress_callback) -> dict:
         """
         Follow redirects and download whatever the final URL serves.
-        Works for most generic cloud providers and CDNs.
+        Uses IDM-style parallel download for maximum speed.
         """
+        from aegis_vault.core.fast_downloader import fast_download
+
+        # First, resolve the final URL (handle HTML pages with embedded download links)
         session = requests.Session()
         session.headers.update(BROWSER_HEADERS)
 
@@ -357,24 +430,53 @@ class URLDownloader:
         if resp.status_code != 200:
             return self._error(f"Server returned HTTP {resp.status_code}")
 
-        # If response is HTML, try to find a download link in it
         content_type = resp.headers.get("Content-Type", "")
+        final_url = url
+
         if "text/html" in content_type:
-            # Look for common download link patterns in the HTML
             html = resp.text
             download_url = self._find_download_link_in_html(html, url)
             if download_url:
-                resp = session.get(download_url, stream=True, timeout=60, allow_redirects=True)
-                if resp.status_code != 200:
-                    return self._error(f"Resolved download URL returned HTTP {resp.status_code}")
+                final_url = download_url
             else:
+                resp.close()
                 return self._error(
                     "The URL returned an HTML page instead of a file. "
                     "It may require authentication or the file may not be publicly available."
                 )
+        resp.close()
 
-        filename = self._filename_from_headers(resp) or self._filename_from_url(url) or "downloaded_file"
-        return self._stream_to_file(resp, filename, progress_callback)
+        # Determine filename
+        filename = self._filename_from_url(final_url) or "downloaded_file"
+        filename = self._sanitize_filename(filename)
+
+        # Avoid overwriting
+        file_path = os.path.join(self.download_dir, filename)
+        base, ext = os.path.splitext(file_path)
+        counter = 1
+        while os.path.exists(file_path):
+            file_path = f"{base}_{counter}{ext}"
+            counter += 1
+
+        def _progress(downloaded, total, speed_bps):
+            if progress_callback and total > 0:
+                progress_callback(downloaded, total)
+
+        result = fast_download(
+            final_url, file_path,
+            progress_callback=_progress,
+            headers=BROWSER_HEADERS,
+            max_threads=16,
+        )
+
+        if result["success"]:
+            result["file_name"] = filename
+            logger.info(
+                f"Downloaded {filename} ({result['file_size']} bytes, "
+                f"{result.get('speed_bps', 0) / 1024 / 1024:.1f} MB/s)"
+            )
+
+        return result
 
     @staticmethod
     def _find_download_link_in_html(html: str, source_url: str) -> Optional[str]:

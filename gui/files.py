@@ -1,22 +1,19 @@
-"""
-Files Tab — Browse and download unencrypted files from Internet Archive.
-Shows non-.enc files across all user buckets (files uploaded without password).
-"""
 import os
 import customtkinter as ctk
 from tkinter import filedialog, messagebox
+from aegis_vault.gui.theme import THEME
+from aegis_vault.gui.hover import apply_bubble_hover
 
-COLOR_INPUT_BG     = "#09090B"
-COLOR_CARD_BG      = "#18181B"
-COLOR_CARD_BORDER  = "#27272A"
-COLOR_TEXT_MAIN    = "#F4F4F5"
-COLOR_TEXT_SUB     = "#A1A1AA"
-COLOR_TEXT_ACCENT  = "#818CF8"
-COLOR_TEXT_DIM     = "#52525B"
-COLOR_SUCCESS      = "#22C55E"
-COLOR_ERROR        = "#EF4444"
-COLOR_PRIMARY      = "#6366F1"
-COLOR_HOVER        = "#27272A"
+COLOR_INPUT_BG     = THEME['input_bg']
+COLOR_CARD_BG      = THEME['card_bg']
+COLOR_CARD_BORDER  = THEME['card_border']
+COLOR_TEXT_MAIN    = THEME['text_main']
+COLOR_TEXT_SUB     = THEME['text_sub']
+COLOR_TEXT_ACCENT  = THEME['text_accent']
+COLOR_TEXT_DIM     = THEME['text_dim']
+COLOR_SUCCESS      = THEME['success']
+COLOR_ERROR        = THEME['error']
+COLOR_PRIMARY      = THEME['primary']
 
 
 class FilesTab(ctk.CTkFrame):
@@ -24,99 +21,44 @@ class FilesTab(ctk.CTkFrame):
         super().__init__(master, fg_color="transparent")
         self.queue_worker = queue_worker
         self.storage = storage_engine
-        self._all_files = []
-        self._selected_file = None
-        self._active_folder = ""
-
+        self.active_folder = ""
+        self.files_cache = []
+        self._selected_files = {}
+        self._batch_total = 0
+        self._batch_done = 0
         self.build_ui()
 
     def build_ui(self):
-        # ── Header ────────────────────────────────────────────────────────
-        header = ctk.CTkFrame(self, fg_color="transparent")
-        header.pack(fill="x", padx=4, pady=(4, 8))
+        top_bar = ctk.CTkFrame(self, fg_color="transparent")
+        top_bar.pack(fill="x", padx=4, pady=(4, 8))
 
-        ctk.CTkLabel(header, text="📂  Files (Unencrypted)",
-                     font=ctk.CTkFont(size=15, weight="bold"),
-                     text_color=COLOR_TEXT_MAIN).pack(side="left")
-
-        self.refresh_btn = ctk.CTkButton(
-            header, text="🔄 Refresh", width=80, height=30,
-            corner_radius=8, font=ctk.CTkFont(size=11),
-            fg_color=COLOR_PRIMARY, hover_color="#4F46E5",
-            text_color="#F4F4F5",
-            command=self._refresh_files
+        self.folder_title = ctk.CTkLabel(
+            top_bar,
+            text="📂  Select a folder from the sidebar",
+            font=ctk.CTkFont(size=15, weight="bold"),
+            text_color=COLOR_TEXT_DIM
         )
-        self.refresh_btn.pack(side="right")
+        self.folder_title.pack(side="left")
 
-        # ── Folder selector ───────────────────────────────────────────────
-        selector_card = ctk.CTkFrame(self, fg_color=COLOR_CARD_BG,
-                                      corner_radius=12, border_width=1,
-                                      border_color=COLOR_CARD_BORDER)
-        selector_card.pack(fill="x", padx=4, pady=(0, 8))
-
-        sel_inner = ctk.CTkFrame(selector_card, fg_color="transparent")
-        sel_inner.pack(fill="x", padx=12, pady=10)
-        sel_inner.grid_columnconfigure(0, weight=1)
-
-        ctk.CTkLabel(sel_inner, text="Select folder to scan:",
-                     font=ctk.CTkFont(size=11),
-                     text_color=COLOR_TEXT_SUB).pack(anchor="w")
-
-        self.folder_var = ctk.StringVar(value="— Select Folder —")
-
-        folder_row = ctk.CTkFrame(sel_inner, fg_color="transparent")
-        folder_row.pack(fill="x", pady=(4, 0))
-        folder_row.grid_columnconfigure(0, weight=1)
-
-        self.folder_menu = ctk.CTkOptionMenu(
-            folder_row, variable=self.folder_var,
-            values=["Loading folders..."],
-            height=34, corner_radius=8,
-            font=ctk.CTkFont(size=11),
-            fg_color=COLOR_INPUT_BG,
-            button_color=COLOR_CARD_BORDER,
-            button_hover_color=COLOR_HOVER,
-            dropdown_fg_color=COLOR_CARD_BG,
-            dropdown_hover_color=COLOR_HOVER,
-            command=self._on_folder_select
-        )
-        self.folder_menu.grid(row=0, column=0, sticky="ew", padx=(0, 8))
-
-        load_all_btn = ctk.CTkButton(
-            folder_row, text="Load All", width=80, height=34,
-            corner_radius=8, font=ctk.CTkFont(size=11),
-            fg_color=COLOR_PRIMARY, hover_color="#4F46E5",
-            text_color="#F4F4F5",
-            command=lambda: self._load_all_files()
-        )
-        load_all_btn.grid(row=0, column=1)
-
-        # ── Search ────────────────────────────────────────────────────────
-        search_frame = ctk.CTkFrame(self, fg_color=COLOR_CARD_BG,
+        search_frame = ctk.CTkFrame(top_bar, fg_color=COLOR_CARD_BG,
                                      corner_radius=10, border_width=1,
                                      border_color=COLOR_CARD_BORDER)
-        search_frame.pack(fill="x", padx=4, pady=(0, 8))
+        search_frame.pack(side="right")
 
         ctk.CTkLabel(search_frame, text="🔍", font=ctk.CTkFont(size=13),
                      text_color=COLOR_TEXT_DIM).pack(side="left", padx=(8, 0))
 
         self.search_entry = ctk.CTkEntry(
-            search_frame, height=34,
+            search_frame, width=200, height=34,
             placeholder_text="Search files...",
             fg_color="transparent", border_width=0,
             font=ctk.CTkFont(size=12),
             text_color=COLOR_TEXT_MAIN,
             placeholder_text_color=COLOR_TEXT_DIM
         )
-        self.search_entry.pack(side="left", fill="x", expand=True, padx=(4, 8))
-        self.search_entry.bind("<KeyRelease>", lambda e: self._filter_files())
+        self.search_entry.pack(side="left", padx=(4, 8))
+        self.search_entry.bind("<KeyRelease>", self.filter_files)
 
-        self.count_lbl = ctk.CTkLabel(search_frame, text="0 files",
-                                       font=ctk.CTkFont(size=10),
-                                       text_color=COLOR_TEXT_DIM)
-        self.count_lbl.pack(side="right", padx=(0, 8))
-
-        # ── File List ─────────────────────────────────────────────────────
         list_card = ctk.CTkFrame(self, fg_color=COLOR_CARD_BG,
                                   corner_radius=12, border_width=1,
                                   border_color=COLOR_CARD_BORDER)
@@ -125,16 +67,27 @@ class FilesTab(ctk.CTkFrame):
         self.file_list_frame = ctk.CTkScrollableFrame(list_card, fg_color="transparent")
         self.file_list_frame.pack(fill="both", expand=True, padx=8, pady=8)
 
-        # Empty state
-        self.empty_lbl = ctk.CTkLabel(
-            self.file_list_frame,
-            text="Select a folder above or click 'Load All' to browse files.",
-            font=ctk.CTkFont(size=12),
-            text_color=COLOR_TEXT_DIM
-        )
-        self.empty_lbl.pack(pady=40)
+        select_all_frame = ctk.CTkFrame(self.file_list_frame, fg_color="transparent")
+        select_all_frame.pack(fill="x", pady=(0, 6))
 
-        # ── Download Action ───────────────────────────────────────────────
+        self._select_all_var = ctk.BooleanVar(value=False)
+        self.select_all_cb = ctk.CTkCheckBox(
+            select_all_frame, text="Select All",
+            variable=self._select_all_var,
+            command=self._toggle_select_all,
+            font=ctk.CTkFont(size=11, weight="bold"),
+            text_color=COLOR_TEXT_MAIN,
+            fg_color=COLOR_PRIMARY,
+            hover_color=THEME['accent_violet']
+        )
+        self.select_all_cb.pack(side="left")
+
+        self._selected_count_lbl = ctk.CTkLabel(
+            select_all_frame, text="0 selected",
+            font=ctk.CTkFont(size=10), text_color=COLOR_TEXT_DIM
+        )
+        self._selected_count_lbl.pack(side="right")
+
         action_card = ctk.CTkFrame(self, fg_color=COLOR_CARD_BG,
                                     corner_radius=12, border_width=1,
                                     border_color=COLOR_CARD_BORDER)
@@ -142,258 +95,260 @@ class FilesTab(ctk.CTkFrame):
 
         action_inner = ctk.CTkFrame(action_card, fg_color="transparent")
         action_inner.pack(fill="x", padx=14, pady=12)
+        action_inner.grid_columnconfigure(0, weight=1)
 
         action_row = ctk.CTkFrame(action_inner, fg_color="transparent")
-        action_row.pack(fill="x")
+        action_row.pack(fill="x", pady=(0, 8))
 
-        self.file_info_lbl = ctk.CTkLabel(
-            action_row, text="No file selected",
-            font=ctk.CTkFont(size=11),
-            text_color=COLOR_TEXT_SUB
-        )
-        self.file_info_lbl.pack(side="left")
-
-        self.download_btn = ctk.CTkButton(
+        self.dl_save_btn = ctk.CTkButton(
             action_row,
-            text="⬇ Download",
-            width=120, height=34,
-            corner_radius=8,
-            font=ctk.CTkFont(size=11, weight="bold"),
-            fg_color=COLOR_PRIMARY, hover_color="#4F46E5",
-            text_color="#F4F4F5",
-            state="disabled",
-            command=self._download_file
+            text="📥  Download Selected",
+            width=220, height=38,
+            corner_radius=10,
+            font=ctk.CTkFont(size=12, weight="bold"),
+            fg_color=COLOR_PRIMARY, hover_color=THEME['accent_violet'],
+            command=self.start_download
         )
-        self.download_btn.pack(side="right")
+        self.dl_save_btn.pack(side="left")
+        apply_bubble_hover(self.dl_save_btn, glow_color=COLOR_PRIMARY)
 
-        # Progress
-        self.progress_bar = ctk.CTkProgressBar(action_inner, height=6, corner_radius=3)
-        self.progress_bar.pack(fill="x", pady=(8, 4))
+        self.progress_bar = ctk.CTkProgressBar(
+            action_inner, height=6, corner_radius=3,
+            progress_color=COLOR_PRIMARY, fg_color=COLOR_INPUT_BG
+        )
+        self.progress_bar.pack(fill="x", pady=(0, 4))
         self.progress_bar.set(0)
 
-        self.status_lbl = ctk.CTkLabel(action_inner, text="",
-                                        font=ctk.CTkFont(size=10),
-                                        text_color=COLOR_TEXT_SUB)
+        self.status_lbl = ctk.CTkLabel(
+            action_inner, text="Ready",
+            font=ctk.CTkFont(size=10), text_color=COLOR_TEXT_SUB
+        )
         self.status_lbl.pack(anchor="w")
 
-    # ─── Public API ────────────────────────────────────────────────────────
-    def load_folder(self, folder_name):
-        """Load unencrypted files for a specific folder (called from sidebar)."""
-        self._active_folder = folder_name
-        self.folder_var.set(folder_name)
-        self.status_lbl.configure(text=f"Scanning {folder_name} for unencrypted files...")
-        self.queue_worker.submit_task(self._fetch_folder_files, folder_name)
-
     def set_preloaded_folders(self, folders):
-        """Receive pre-loaded folder list from app."""
-        if folders:
-            self.folder_menu.configure(values=["— Select Folder —"] + sorted(folders))
+        pass
 
-    def on_task_update(self, status, result):
-        if status == "success" and isinstance(result, dict):
-            action = result.get("action")
-            if action == "folders_for_files":
-                folders = result.get("folders", [])
-                if folders:
-                    self.folder_menu.configure(values=["— Select Folder —"] + sorted(folders))
-                self.status_lbl.configure(text=f"{len(folders)} folder(s) found")
-            elif action == "all_files_loaded":
-                self._display_files(result.get("files", []))
-            elif action == "folder_files_loaded":
-                self._display_files(result.get("files", []))
-            elif action == "file_downloaded":
-                self.status_lbl.configure(text=f"✓ Downloaded: {result.get('path', '')}",
-                                          text_color=COLOR_SUCCESS)
-                self.progress_bar.set(1.0)
-                self.download_btn.configure(state="normal")
-            elif action == "file_deleted":
-                self.status_lbl.configure(
-                    text=f"✓ Deleted {result.get('filename', '')}",
-                    text_color=COLOR_SUCCESS
-                )
-                if self._active_folder:
-                    self.load_folder(self._active_folder)
-        elif status == "error":
-            self.status_lbl.configure(text=f"Error: {result}",
-                                      text_color=COLOR_ERROR)
-            self.download_btn.configure(state="normal")
+    def load_folder(self, folder_name):
+        self.active_folder = folder_name
+        self.folder_title.configure(
+            text=f"📂  {folder_name}", text_color=COLOR_TEXT_ACCENT
+        )
+        self.status_lbl.configure(text=f"Loading {folder_name} files...")
+        self._selected_files.clear()
+        self._select_all_var.set(False)
+        self._update_selected_count()
+        self.queue_worker.submit_task(self._fetch_files, folder_name)
 
-    # ─── Logic ─────────────────────────────────────────────────────────────
-    def _refresh_files(self):
-        self.status_lbl.configure(text="Loading folders...")
-        self.queue_worker.submit_task(self._fetch_folders_for_files)
-
-    def _fetch_folders_for_files(self):
-        folders = self.storage.scan_user_folders()
-        return {"action": "folders_for_files", "folders": folders}
-
-    def _on_folder_select(self, choice):
-        if choice and choice != "— Select Folder —" and choice != "Loading folders...":
-            self._active_folder = choice
-            self.status_lbl.configure(text=f"Scanning {choice}...")
-            self.queue_worker.submit_task(self._fetch_folder_files, choice)
-
-    def _load_all_files(self):
-        self.status_lbl.configure(text="Scanning all folders...")
-        self.queue_worker.submit_task(self._fetch_all_files)
-
-    def _fetch_all_files(self):
-        folders = self.storage.scan_user_folders()
-        all_files = []
-        for folder in folders:
-            try:
-                files = self.storage.get_files_unencrypted(folder)
-                for f in files:
-                    f["bucket"] = folder
-                all_files.extend(files)
-            except Exception:
-                continue
-        return {"action": "all_files_loaded", "files": all_files}
-
-    def _fetch_folder_files(self, folder_name):
+    def _fetch_files(self, folder_name):
         files = self.storage.get_files_unencrypted(folder_name)
-        for f in files:
-            f["bucket"] = folder_name
-        return {"action": "folder_files_loaded", "files": files}
+        return {"action": "files_loaded", "files": files}
 
-    def _display_files(self, files):
-        self._all_files = files
-        self._filter_files()
-        if self._active_folder:
-            self.folder_var.set(self._active_folder)
-        else:
-            folders = list({f.get("bucket", "") for f in files})
-            if folders:
-                self.folder_menu.configure(values=["— Select Folder —"] + sorted(folders))
+    def populate_list(self, files):
+        self.files_cache = files
+        self.filter_files()
+        self.status_lbl.configure(
+            text=f"Loaded {len(files)} unencrypted file(s).", text_color=COLOR_TEXT_SUB
+        )
 
-    def _filter_files(self):
+    def filter_files(self, event=None):
         query = self.search_entry.get().lower()
 
         for widget in self.file_list_frame.winfo_children():
             widget.destroy()
 
-        filtered = [f for f in self._all_files if not query or query in f["name"].lower()]
-        self.count_lbl.configure(text=f"{len(filtered)} file(s)")
+        select_all_frame = ctk.CTkFrame(self.file_list_frame, fg_color="transparent")
+        select_all_frame.pack(fill="x", pady=(0, 6))
 
-        if not filtered:
-            empty_text = "No unencrypted files found." if self._all_files else "No files loaded yet."
+        self._select_all_var.set(False)
+        self.select_all_cb = ctk.CTkCheckBox(
+            select_all_frame, text="Select All",
+            variable=self._select_all_var,
+            command=self._toggle_select_all,
+            font=ctk.CTkFont(size=11, weight="bold"),
+            text_color=COLOR_TEXT_MAIN,
+            fg_color=COLOR_PRIMARY,
+            hover_color=THEME['accent_violet']
+        )
+        self.select_all_cb.pack(side="left")
+
+        self._selected_count_lbl = ctk.CTkLabel(
+            select_all_frame, text=f"{len(self._selected_files)} selected",
+            font=ctk.CTkFont(size=10), text_color=COLOR_TEXT_DIM
+        )
+        self._selected_count_lbl.pack(side="right")
+
+        if not self.files_cache:
             ctk.CTkLabel(
-                self.file_list_frame, text=empty_text,
-                font=ctk.CTkFont(size=12), text_color=COLOR_TEXT_DIM
-            ).pack(pady=40)
+                self.file_list_frame,
+                text="No unencrypted files found in this folder.",
+                font=ctk.CTkFont(size=12),
+                text_color=COLOR_TEXT_DIM
+            ).pack(pady=30)
             return
 
-        for f in filtered:
-            row = ctk.CTkFrame(self.file_list_frame, fg_color="#09090B",
+        displayed_count = 0
+        for f in self.files_cache:
+            name = f['name']
+            if query and query not in name.lower():
+                continue
+
+            displayed_count += 1
+            row = ctk.CTkFrame(self.file_list_frame, fg_color=THEME['input_bg'],
                                 corner_radius=8, border_width=1,
                                 border_color=COLOR_CARD_BORDER)
             row.pack(fill="x", pady=(0, 4), padx=4)
 
-            # File icon + name
-            name_lbl = ctk.CTkLabel(
-                row, text=f"📄  {f['name']}",
+            is_checked = name in self._selected_files
+            cb_var = ctk.BooleanVar(value=is_checked)
+            cb = ctk.CTkCheckBox(
+                row,
+                text=f"📄  {name}",
+                variable=cb_var,
                 font=ctk.CTkFont(size=11),
                 text_color=COLOR_TEXT_MAIN,
-                anchor="w"
+                fg_color=COLOR_PRIMARY,
+                hover_color=THEME['accent_violet'],
+                command=lambda n=name, v=cb_var: self._toggle_file(n, v)
             )
-            name_lbl.pack(side="left", padx=10, pady=8)
+            cb.pack(side="left", anchor="w", padx=10, pady=8)
 
-            # Bucket badge
-            bucket = f.get("bucket", "")
-            if bucket:
-                ctk.CTkLabel(
-                    row, text=bucket,
-                    font=ctk.CTkFont(size=9),
-                    text_color=COLOR_TEXT_ACCENT,
-                    fg_color=COLOR_CARD_BG,
-                    corner_radius=4, padx=6, pady=2
-                ).pack(side="right", padx=(0, 4))
+            size_str = f.get('size', 'Unknown')
+            ctk.CTkLabel(row, text=size_str,
+                         font=ctk.CTkFont(size=10), text_color=COLOR_TEXT_DIM).pack(
+                side="right", padx=10
+            )
 
-            # Size
-            size_str = f.get("size", "")
-            if size_str:
-                ctk.CTkLabel(
-                    row, text=size_str,
-                    font=ctk.CTkFont(size=10),
-                    text_color=COLOR_TEXT_DIM
-                ).pack(side="right", padx=8)
+            copy_btn = ctk.CTkButton(
+                row, text="📋", width=30, height=24,
+                corner_radius=6, fg_color="transparent",
+                hover_color=THEME['hover_subtle'], text_color=COLOR_TEXT_SUB,
+                command=lambda n=name: self._copy_filename(n)
+            )
+            copy_btn.pack(side="right", padx=(0, 4))
 
-            # Delete button
             del_btn = ctk.CTkButton(
                 row, text="🗑", width=30, height=24,
                 corner_radius=6, fg_color="transparent",
-                hover_color="#7F1D1D", text_color="#EF4444",
-                command=lambda file=f: self._delete_file(file)
+                hover_color="#7F1D1D", text_color=COLOR_ERROR,
+                command=lambda n=name: self._delete_file(n)
             )
             del_btn.pack(side="right", padx=(0, 4))
 
-            # Select on click
-            row.bind("<Button-1>", lambda e, file=f: self._select_file(file, row))
-            name_lbl.bind("<Button-1>", lambda e, file=f, r=row: self._select_file(file, r))
+        if query and displayed_count == 0:
+            ctk.CTkLabel(
+                self.file_list_frame,
+                text=f"No files match '{query}'",
+                font=ctk.CTkFont(size=12),
+                text_color=COLOR_TEXT_DIM
+            ).pack(pady=30)
 
-    def _select_file(self, file, row_widget):
-        self._selected_file = file
-        self.file_info_lbl.configure(
-            text=f"{file['name']}  •  {file.get('size', '?')}  •  {file.get('bucket', '')}",
-            text_color=COLOR_TEXT_MAIN
-        )
-        self.download_btn.configure(state="normal")
+    def _toggle_file(self, name, var):
+        if var.get():
+            self._selected_files[name] = True
+        else:
+            self._selected_files.pop(name, None)
+        self._update_selected_count()
 
-        # Highlight selected row
-        for widget in self.file_list_frame.winfo_children():
-            if isinstance(widget, ctk.CTkFrame):
-                widget.configure(border_color=COLOR_CARD_BORDER)
-        row_widget.configure(border_color=COLOR_PRIMARY)
+    def _toggle_select_all(self):
+        if self._select_all_var.get():
+            for f in self.files_cache:
+                self._selected_files[f['name']] = True
+        else:
+            self._selected_files.clear()
+        self.filter_files()
 
-    def _delete_file(self, file):
-        bucket = file.get("bucket", "")
-        name = file["name"]
-        if not bucket:
+    def _update_selected_count(self):
+        count = len(self._selected_files)
+        if hasattr(self, '_selected_count_lbl') and self._selected_count_lbl:
+            self._selected_count_lbl.configure(text=f"{count} selected")
+        if count > 0:
+            self.dl_save_btn.configure(text=f"📥  Download Selected ({count})")
+        else:
+            self.dl_save_btn.configure(text="📥  Download Selected")
+
+    def _copy_filename(self, filename):
+        self.clipboard_clear()
+        self.clipboard_append(filename)
+        self.update()
+        from aegis_vault.gui.toast import show_toast
+        show_toast(self.winfo_toplevel(), f"Copied: {filename[:30]}...", 2000, "success")
+
+    def _delete_file(self, filename):
+        if not self.active_folder:
             return
         confirm = messagebox.askyesno(
             "Delete File",
-            f"Delete '{name}' from {bucket}?\n\nThis cannot be undone."
+            f"Delete '{filename}' from {self.active_folder}?\n\nThis cannot be undone."
         )
         if not confirm:
             return
-        self.status_lbl.configure(text=f"Deleting {name}...")
-        self.queue_worker.submit_task(self._process_delete, bucket, name)
+        self.status_lbl.configure(text=f"Deleting {filename}...")
+        self.queue_worker.submit_task(
+            self._process_delete, self.active_folder, filename
+        )
 
     def _process_delete(self, bucket, filename):
         self.storage.delete_file(bucket, filename, encrypted=False)
         return {"action": "file_deleted", "filename": filename}
 
-    def _download_file(self):
-        if not self._selected_file:
+    def start_download(self):
+        selected = list(self._selected_files.keys())
+        if not selected or not self.active_folder:
+            messagebox.showerror("Error", "Select at least one file to download.")
             return
 
-        file = self._selected_file
-        bucket = file.get("bucket", "")
-        name = file["name"]
-
-        save_path = filedialog.asksaveasfilename(initialfile=name)
-        if not save_path:
+        save_dir = filedialog.askdirectory(title="Select download folder")
+        if not save_dir:
             return
 
-        self.download_btn.configure(state="disabled")
-        self.status_lbl.configure(text=f"Downloading {name}...")
+        self.dl_save_btn.configure(state="disabled")
+        self._batch_total = len(selected)
+        self._batch_done = 0
         self.progress_bar.set(0)
+        self.status_lbl.configure(text=f"Queued {len(selected)} file(s) for download...")
 
-        self.queue_worker.submit_task(
-            self._download_file_task, bucket, name, save_path
-        )
+        for filename in selected:
+            save_path = os.path.join(save_dir, filename)
+            self.queue_worker.submit_task(
+                self._download_plain, self.active_folder, filename, save_path
+            )
 
-    def _download_file_task(self, bucket, filename, save_path):
-        download_url = f"https://archive.org/download/{bucket}/{filename}"
-        import requests
-        response = requests.get(download_url, stream=True, timeout=30)
-        if response.status_code != 200:
-            raise Exception(f"Download failed: HTTP {response.status_code}")
+    def _download_plain(self, bucket, filename, save_path):
+        result = self.storage.download_file_raw(bucket, filename, save_path, None)
+        speed = result.get('speed_bps', 0) / 1024 / 1024 if result.get('speed_bps') else 0
+        return {"action": "download_complete", "filename": filename, "speed_mbps": speed}
 
-        total = int(response.headers.get("content-length", 0))
-
-        with open(save_path, "wb") as f:
-            for chunk in response.iter_content(chunk_size=4096):
-                f.write(chunk)
-
-        return {"action": "file_downloaded", "path": save_path}
+    def on_task_update(self, status, result):
+        if status == "success":
+            if isinstance(result, dict):
+                action = result.get("action")
+                if action == "files_loaded":
+                    self.populate_list(result.get("files", []))
+                elif action == "download_complete":
+                    self._batch_done += 1
+                    pct = self._batch_done / self._batch_total if self._batch_total else 1
+                    self.progress_bar.set(pct)
+                    speed = result.get('speed_mbps', 0)
+                    speed_str = f" @ {speed:.1f} MB/s" if speed > 0 else ""
+                    self.status_lbl.configure(
+                        text=f"✓ Downloaded {result.get('filename', '')}  ({self._batch_done}/{self._batch_total}){speed_str}",
+                        text_color=COLOR_SUCCESS
+                    )
+                    if self._batch_done >= self._batch_total:
+                        self.dl_save_btn.configure(state="normal")
+                        self.status_lbl.configure(
+                            text=f"✓ All {self._batch_total} file(s) downloaded!",
+                            text_color=COLOR_SUCCESS
+                        )
+                elif action == "file_deleted":
+                    self.status_lbl.configure(
+                        text=f"✓ Deleted {result.get('filename', '')}",
+                        text_color=COLOR_SUCCESS
+                    )
+                    if self.active_folder:
+                        self.load_folder(self.active_folder)
+        elif status == "error":
+            self._batch_done += 1
+            self.status_lbl.configure(text=f"Error: {result}", text_color=COLOR_ERROR)
+            if self._batch_done >= self._batch_total:
+                self.dl_save_btn.configure(state="normal")

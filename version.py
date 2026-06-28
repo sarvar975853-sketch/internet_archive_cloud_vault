@@ -3,7 +3,7 @@ Aegis Vault Version Information
 Made by Samar in India 🇮🇳
 """
 
-__version__ = "3.0.0"
+__version__ = "3.5.5"
 __app_name__ = "Aegis Vault"
 __author__ = "Samar"
 __country__ = "India"
