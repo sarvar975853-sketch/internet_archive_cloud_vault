@@ -199,21 +199,59 @@ class IAStorageEngine:
         
         return user_items
 
+    def _get_bucket_metadata(self, bucket_id: str) -> dict:
+        """
+        Fetch and cache raw metadata for a bucket using the shared session.
+        Both get_files_in_bucket and get_files_unencrypted share this cache
+        so the same /metadata/ endpoint is hit only ONCE per bucket.
+        """
+        now = time.time()
+
+        # Check in-memory cache (10 min TTL)
+        if bucket_id in self._metadata_cache:
+            cached_data, cached_at = self._metadata_cache[bucket_id]
+            if now - cached_at < 600:
+                return cached_data
+
+        url = f"https://archive.org/metadata/{bucket_id}"
+        for attempt in range(3):
+            try:
+                response = self._session.get(url, timeout=15)
+                if response.status_code == 200:
+                    data = response.json()
+                    self._metadata_cache[bucket_id] = (data, now)
+                    return data
+                elif response.status_code == 429:
+                    wait = 2 ** attempt
+                    logger.warning(f"Rate limited on {bucket_id}, waiting {wait}s")
+                    time.sleep(wait)
+                    continue
+                else:
+                    logger.warning(f"HTTP {response.status_code} for {bucket_id}")
+                    return None
+            except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
+                wait = 1 + attempt
+                logger.warning(f"Attempt {attempt+1}/3 failed for {bucket_id}: {e}")
+                if attempt < 2:
+                    time.sleep(wait)
+                continue
+            except Exception as e:
+                logger.error(f"Error fetching metadata for {bucket_id}: {e}")
+                return None
+        return None
+
     def get_files_in_bucket(self, bucket_id: str) -> list:
         """
         Enhanced file listing with better metadata handling.
         Returns list of encrypted files in the specified bucket/folder.
         """
-        url = f"https://archive.org/metadata/{bucket_id}"
         logger.info(f"Fetching metadata for bucket: {bucket_id}")
-        
+
         try:
-            response = requests.get(url, timeout=20)
-            if response.status_code != 200:
-                logger.warning(f"Failed to fetch metadata for {bucket_id}: HTTP {response.status_code}")
+            data = self._get_bucket_metadata(bucket_id)
+            if data is None:
                 return []
             
-            data = response.json()
             files = data.get("files", [])
             
             clean_list = []
@@ -245,15 +283,13 @@ class IAStorageEngine:
         Returns list of non-encrypted files (no .enc extension) in the bucket.
         Used by the Files tab to browse unencrypted uploads.
         """
-        url = f"https://archive.org/metadata/{bucket_id}"
         logger.info(f"Fetching unencrypted files for bucket: {bucket_id}")
         
         try:
-            response = requests.get(url, timeout=20)
-            if response.status_code != 200:
+            data = self._get_bucket_metadata(bucket_id)
+            if data is None:
                 return []
             
-            data = response.json()
             files = data.get("files", [])
             
             clean_list = []
@@ -277,7 +313,7 @@ class IAStorageEngine:
             
             logger.info(f"✓ Found {len(clean_list)} unencrypted files in {bucket_id}")
             return clean_list
-            
+
         except Exception as e:
             logger.error(f"Error fetching unencrypted files for {bucket_id}: {e}")
             return []
