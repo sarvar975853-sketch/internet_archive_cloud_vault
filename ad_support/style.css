@@ -19,37 +19,6 @@ body {
     position: relative;
 }
 
-/* ─── Ad Zones (labeled ad blocks between content) ─────────────────── */
-.ad-zone {
-    background: #141414;
-    border: 1px solid #222;
-    border-radius: 10px;
-    padding: 10px;
-    margin: 16px 0;
-    text-align: center;
-}
-
-.ad-label {
-    font-size: 8px;
-    font-weight: 700;
-    letter-spacing: 2px;
-    color: #444;
-    text-transform: uppercase;
-    margin-bottom: 6px;
-}
-
-.ad-inline {
-    margin: 20px 0;
-}
-
-.ad-slot-inline {
-    width: 100%;
-    max-width: 728px;
-    min-height: 90px;
-    margin: 0 auto;
-}
-
-/* ─── Top Banner ───────────────────────────────────────────────────── */
 #ad-top {
     width: 100%;
     min-height: 90px;
@@ -171,7 +140,42 @@ header h1 {
 
 .ad-sidebar-slot {
     width: 300px;
-    min-height: 250px;
+    height: 250px;
+    overflow: hidden;
+}
+
+.ad-sidebar-slot iframe {
+    width: 300px;
+    height: 250px;
+    border: none;
+    display: block;
+}
+
+.native-promo {
+    display: flex;
+    align-items: center;
+    padding: 14px;
+    gap: 12px;
+}
+
+.promo-icon {
+    font-size: 28px;
+    flex-shrink: 0;
+}
+
+.promo-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.promo-text strong {
+    color: #f59e0b;
+    font-size: 13px;
+}
+
+.promo-text span {
+    color: #888;
+    font-size: 11px;
 }
 
 /* ─── Links ────────────────────────────────────────────────────────── */
@@ -226,7 +230,8 @@ footer {
         position: static;
     }
 
-    .ad-sidebar-slot {
+    .ad-sidebar-slot,
+    .ad-sidebar-slot iframe {
         width: 100%;
         max-width: 300px;
     }
