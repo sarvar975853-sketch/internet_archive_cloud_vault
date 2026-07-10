@@ -77,6 +77,7 @@ jobs:
           otool -l build/macos/Build/Products/Release/Aegis\ Vault.app/Contents/MacOS/Aegis\ Vault 2>/dev/null | grep -A2 LC_VERSION_MIN || true
 
       - name: Create DMG
+        continue-on-error: true
         run: |
           brew install create-dmg
           create-dmg \
