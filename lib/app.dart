@@ -64,16 +64,16 @@ class AppState extends ChangeNotifier {
     aegisLogger.info('Aegis Vault starting...');
     final creds = await credentialManager.getCredentials();
     if (creds['access_key'] != null && creds['secret_key'] != null) {
-      await startSession(creds['access_key']!, creds['secret_key']!);
+      await startSession(creds['access_key']!, creds['secret_key']!, email: creds['email']);
     }
   }
 
-  Future<void> startSession(String accessKey, String secretKey) async {
+  Future<void> startSession(String accessKey, String secretKey, {String? email}) async {
     isLoading = true;
     notifyListeners();
 
     try {
-      storageEngine = IAStorageEngine(accessKey, secretKey);
+      storageEngine = IAStorageEngine(accessKey, secretKey, uploaderEmail: email);
       queueWorker = QueueWorker();
       folders = await storageEngine!.scanUserFolders();
       isLoggedIn = true;
@@ -146,6 +146,7 @@ class AppState extends ChangeNotifier {
 
   void selectFolder(String folder) {
     currentFolder = folder;
+    if (!folders.contains(folder)) folders.add(folder);
     if (currentTab == 3) loadEncryptedFiles(folder);
     if (currentTab == 4) loadUnencryptedFiles(folder);
     notifyListeners();
@@ -217,8 +218,8 @@ class _AegisVaultHomeState extends State<AegisVaultHome> {
     return Consumer<AppState>(builder: (context, state, _) {
       if (!state.isLoggedIn) {
         return LoginScreen(
-          onLogin: (access, secret) {
-            state.startSession(access, secret);
+          onLogin: (access, secret, {email}) {
+            state.startSession(access, secret, email: email);
           },
         );
       }
@@ -331,7 +332,8 @@ class _AegisVaultHomeState extends State<AegisVaultHome> {
               if (controller.text.isNotEmpty) {
                 try {
                   await state.storageEngine?.createFolder(controller.text);
-                  await state.startSession('', ''); // Refresh
+                  state.folders = await state.storageEngine!.scanUserFolders(forceRefresh: true);
+                  state.notifyListeners();
                   if (context.mounted) {
                     Navigator.pop(context);
                     ToastManager.success(context, 'Folder created');

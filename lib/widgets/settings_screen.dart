@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../app.dart';
 import '../theme/app_theme.dart';
 import '../version.dart';
 
@@ -74,15 +76,80 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   }
 }
 
-class _GeneralTab extends StatelessWidget {
+class _GeneralTab extends StatefulWidget {
   final VoidCallback? onClearCache;
   const _GeneralTab({this.onClearCache});
+
+  @override
+  State<_GeneralTab> createState() => _GeneralTabState();
+}
+
+class _GeneralTabState extends State<_GeneralTab> {
+  late TextEditingController _emailController;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final email = context.read<AppState>().storageEngine?.uploaderEmail ?? '';
+    _emailController = TextEditingController(text: email);
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _saveEmail() async {
+    final email = _emailController.text.trim();
+    setState(() => _saving = true);
+    try {
+      final state = context.read<AppState>();
+      if (state.storageEngine != null) {
+        state.storageEngine!.uploaderEmail = email.isNotEmpty ? email : null;
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Email saved'), duration: Duration(seconds: 2)),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('Account', style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 12),
+        Row(children: [
+          Expanded(
+            child: TextField(
+              controller: _emailController,
+              decoration: const InputDecoration(
+                labelText: 'Internet Archive Email',
+                hintText: 'your@email.com',
+                prefixIcon: Icon(Icons.email_outlined, size: 20),
+                isDense: true,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          SizedBox(
+            height: 40,
+            child: ElevatedButton(
+              onPressed: _saving ? null : _saveEmail,
+              child: _saving
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Text('Save'),
+            ),
+          ),
+        ]),
+        const SizedBox(height: 32),
         Text('Performance', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 12),
         const _SettingRow(
@@ -109,7 +176,7 @@ class _GeneralTab extends StatelessWidget {
           label: 'Clear Local Cache',
           subtitle: 'Remove cached folder list and metadata',
           trailing: TextButton.icon(
-            onPressed: onClearCache,
+            onPressed: widget.onClearCache,
             icon: const Icon(Icons.delete_outline, size: 16),
             label: const Text('Clear'),
             style: TextButton.styleFrom(foregroundColor: AppColors.error),

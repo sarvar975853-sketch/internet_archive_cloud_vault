@@ -3,7 +3,7 @@ import '../theme/app_theme.dart';
 import '../core/credentials.dart';
 
 class LoginScreen extends StatefulWidget {
-  final void Function(String accessKey, String secretKey) onLogin;
+  final void Function(String accessKey, String secretKey, {String? email}) onLogin;
 
   const LoginScreen({super.key, required this.onLogin});
 
@@ -14,6 +14,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _accessController = TextEditingController();
   final _secretController = TextEditingController();
+  final _emailController = TextEditingController();
   final _credentialManager = CredentialManager();
   bool _obscureSecret = true;
   bool _isLoading = false;
@@ -31,6 +32,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (creds['access_key'] != null && creds['secret_key'] != null) {
         _accessController.text = creds['access_key']!;
         _secretController.text = creds['secret_key']!;
+        if (creds['email'] != null) _emailController.text = creds['email']!;
       }
     } catch (_) {}
   }
@@ -38,6 +40,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _handleLogin() async {
     final access = _accessController.text.trim();
     final secret = _secretController.text.trim();
+    final email = _emailController.text.trim();
 
     if (access.isEmpty || secret.isEmpty) {
       setState(() => _error = 'Please enter both Access Key and Secret Key');
@@ -50,8 +53,8 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      await _credentialManager.saveCredentials(access, secret);
-      widget.onLogin(access, secret);
+      await _credentialManager.saveCredentials(access, secret, email: email.isNotEmpty ? email : null);
+      widget.onLogin(access, secret, email: email.isNotEmpty ? email : null);
     } catch (e) {
       if (mounted) setState(() => _error = 'Failed to save credentials: $e');
     } finally {
@@ -171,6 +174,19 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                             onPressed: () => setState(() => _obscureSecret = !_obscureSecret),
                           ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      // Email
+                      TextField(
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: const InputDecoration(
+                          labelText: 'Internet Archive Email (optional)',
+                          hintText: 'your@email.com',
+                          prefixIcon: Icon(Icons.email_outlined, size: 20),
+                          helperText: 'Needed to auto-discover your folders',
+                          helperMaxLines: 1,
                         ),
                       ),
                       if (_error != null) ...[

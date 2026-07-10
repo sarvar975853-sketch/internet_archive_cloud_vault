@@ -126,10 +126,10 @@ class CredentialManager {
     return utf8.decode(plaintext);
   }
 
-  Future<void> saveCredentials(String access, String secret) async {
+  Future<void> saveCredentials(String access, String secret, {String? email}) async {
     try {
       final machineKey = await _loadOrCreateKey();
-      final json = jsonEncode({'access_key': access, 'secret_key': secret});
+      final json = jsonEncode({'access_key': access, 'secret_key': secret, 'email': email});
       final encrypted = await _encryptWithKey(machineKey, json);
 
       final path = await _credentialPath;
@@ -159,9 +159,10 @@ class CredentialManager {
 
       _cachedAccessKey = data['access_key'] as String?;
       _cachedSecretKey = data['secret_key'] as String?;
+      final email = data['email'] as String?;
       _loaded = true;
 
-      return {'access_key': _cachedAccessKey, 'secret_key': _cachedSecretKey};
+      return {'access_key': _cachedAccessKey, 'secret_key': _cachedSecretKey, 'email': email};
     } catch (e) {
       if (e is CredentialException) rethrow;
       throw CredentialException('Failed to load credentials: $e', cause: e);
