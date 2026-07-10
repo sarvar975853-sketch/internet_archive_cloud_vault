@@ -144,6 +144,12 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> refreshFolders() async {
+    if (storageEngine == null) return;
+    folders = await storageEngine!.scanUserFolders(forceRefresh: true);
+    notifyListeners();
+  }
+
   void selectFolder(String folder) {
     currentFolder = folder;
     if (!folders.contains(folder)) folders.add(folder);
@@ -332,8 +338,7 @@ class _AegisVaultHomeState extends State<AegisVaultHome> {
               if (controller.text.isNotEmpty) {
                 try {
                   await state.storageEngine?.createFolder(controller.text);
-                  state.folders = await state.storageEngine!.scanUserFolders(forceRefresh: true);
-                  state.notifyListeners();
+                  await state.refreshFolders();
                   if (context.mounted) {
                     Navigator.pop(context);
                     ToastManager.success(context, 'Folder created');
