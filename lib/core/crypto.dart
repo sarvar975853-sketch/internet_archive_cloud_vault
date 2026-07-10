@@ -109,7 +109,7 @@ class CryptoEngine {
 
       // GCM authenticates, so if we got here, integrity is verified
       _ensureDirectory(outputPath);
-      File(outputPath).writeAsBytesSync(decrypted.sublist(0, finalLen));
+      File(outputPath).writeAsBytesSync(decrypted.sublist(0, len + finalLen));
       return true;
     } on FileSystemException {
       rethrow;

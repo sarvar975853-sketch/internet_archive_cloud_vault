@@ -77,7 +77,7 @@ class CredentialManager {
     final len = cipher.processBytes(encrypted, 0, encrypted.length, decrypted, 0);
     final finalLen = cipher.doFinal(decrypted, len);
 
-    return utf8.decode(decrypted.sublist(0, finalLen));
+    return utf8.decode(decrypted.sublist(0, len + finalLen));
   }
 
   /// Saves credentials (access, secret) to encrypted local file.
