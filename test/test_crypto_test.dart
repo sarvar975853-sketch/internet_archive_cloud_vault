@@ -8,7 +8,7 @@ void main() {
   late String tempDir;
 
   setUp(() {
-    crypto = CryptoEngine();
+    crypto = CryptoEngine(pbkdf2Iterations: 10000);
     tempDir = Directory.systemTemp.path + '/aegis_test_${DateTime.now().millisecondsSinceEpoch}';
     Directory(tempDir).createSync();
   });

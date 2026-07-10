@@ -7,11 +7,12 @@ import 'config.dart';
 import 'exceptions.dart';
 
 Uint8List _generateSecureBytes(int count) {
-  final rng = FortunaRandom();
-  final mathRandom = math.Random.secure();
-  final seed = Uint8List.fromList(List.generate(32, (_) => mathRandom.nextInt(256)));
-  rng.seed(KeyParameter(seed));
-  return rng.nextBytes(count);
+  final random = math.Random.secure();
+  final bytes = Uint8List(count);
+  for (var i = 0; i < count; i++) {
+    bytes[i] = random.nextInt(256);
+  }
+  return bytes;
 }
 
 class CredentialManager {
@@ -36,13 +37,7 @@ class CredentialManager {
       final content = await file.readAsString();
       return base64Decode(content.trim());
     } else {
-      final mathRandom = math.Random.secure();
-      final seed = Uint8List.fromList(List.generate(32, (_) => mathRandom.nextInt(256)));
-      final secureRandom = FortunaRandom()
-        ..seed(KeyParameter(seed));
-      
-      final key = secureRandom.nextBytes(32);
-      
+      final key = _generateSecureBytes(32);
       await _ensureDir(path);
       await file.writeAsString(base64Encode(key));
       return key;

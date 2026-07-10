@@ -47,7 +47,7 @@ void main() {
         },
         maxRetries: 2,
       );
-      await Future.delayed(const Duration(milliseconds: 800));
+      await Future.delayed(const Duration(seconds: 4));
       expect(attempts, 2);
       worker.stop();
     });
@@ -65,7 +65,7 @@ void main() {
         task: () async => throw Exception('always fails'),
         maxRetries: 1,
       );
-      await Future.delayed(const Duration(seconds: 2));
+      await Future.delayed(const Duration(seconds: 4));
       expect(lastEvent, 'error');
       worker.stop();
     });

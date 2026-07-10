@@ -8,19 +8,24 @@ import 'exceptions.dart';
 import 'config.dart';
 
 Uint8List _generateSecureBytes(int count) {
-  final rng = FortunaRandom();
-  final mathRandom = math.Random.secure();
-  final seed = Uint8List.fromList(List.generate(32, (_) => mathRandom.nextInt(256)));
-  rng.seed(KeyParameter(seed));
-  return rng.nextBytes(count);
+  final random = math.Random.secure();
+  final bytes = Uint8List(count);
+  for (var i = 0; i < count; i++) {
+    bytes[i] = random.nextInt(256);
+  }
+  return bytes;
 }
 
 class CryptoEngine {
   final AppConfig _config = AppConfig();
-  
+  final int _pbkdf2Iterations;
+
+  CryptoEngine({int? pbkdf2Iterations})
+      : _pbkdf2Iterations = pbkdf2Iterations ?? AppConfig().pbkdf2Iterations;
+
   Uint8List _deriveKey(String password, Uint8List salt) {
     final pbkdf2 = PBKDF2KeyDerivator(HMac(SHA256Digest(), 64));
-    pbkdf2.init(Pbkdf2Parameters(salt, _config.pbkdf2Iterations, 32));
+    pbkdf2.init(Pbkdf2Parameters(salt, _pbkdf2Iterations, 32));
     return pbkdf2.process(Uint8List.fromList(utf8.encode(password)));
   }
 
