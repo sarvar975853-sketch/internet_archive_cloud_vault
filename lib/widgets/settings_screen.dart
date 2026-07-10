@@ -32,9 +32,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       child: Container(
         width: 520,
         height: 480,
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: AppColors.cardBg,
-          borderRadius: BorderRadius.all(Radius.circular(16)),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(color: AppColors.borderDefault),
         ),
         child: Column(children: [

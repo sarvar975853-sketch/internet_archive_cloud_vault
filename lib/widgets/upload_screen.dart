@@ -150,8 +150,8 @@ class _UploadScreenState extends State<UploadScreen> {
             const SizedBox(height: 8),
             Container(
               constraints: const BoxConstraints(maxHeight: 200),
-              decoration: const BoxDecoration(
-                color: AppColors.cardBg, borderRadius: BorderRadius.all(Radius.circular(8)),
+              decoration: BoxDecoration(
+                color: AppColors.cardBg, borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: AppColors.borderDefault),
               ),
               child: ListView.separated(

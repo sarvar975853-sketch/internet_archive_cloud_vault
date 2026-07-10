@@ -125,9 +125,9 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
         Container(
           margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
           padding: const EdgeInsets.all(16),
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             color: AppColors.surfaceBg,
-            borderRadius: BorderRadius.all(Radius.circular(8)),
+            borderRadius: BorderRadius.circular(8),
             border: Border.all(color: AppColors.borderDefault),
           ),
           child: Column(children: [

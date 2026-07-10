@@ -107,8 +107,8 @@ class _OmniFetchTabState extends State<OmniFetchTab> with SingleTickerProviderSt
         // URL card
         Container(
           padding: const EdgeInsets.all(24),
-          decoration: const BoxDecoration(
-            color: AppColors.cardBg, borderRadius: BorderRadius.all(Radius.circular(16)),
+          decoration: BoxDecoration(
+            color: AppColors.cardBg, borderRadius: BorderRadius.circular(16),
             border: Border.all(color: AppColors.borderDefault),
           ),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -269,8 +269,8 @@ class _TaskEntry extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(16),
-      decoration: const BoxDecoration(
-        color: AppColors.cardBg, borderRadius: BorderRadius.all(Radius.circular(12)),
+      decoration: BoxDecoration(
+        color: AppColors.cardBg, borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.borderDefault),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

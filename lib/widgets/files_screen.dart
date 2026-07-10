@@ -101,9 +101,9 @@ class _FilesScreenState extends State<FilesScreen> {
                       final size = file['size']?.toString() ?? '';
                       return Container(
                         margin: const EdgeInsets.only(bottom: 4),
-                        decoration: const BoxDecoration(
+                        decoration: BoxDecoration(
                           color: AppColors.cardBg,
-                          borderRadius: BorderRadius.all(Radius.circular(8)),
+                          borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: AppColors.borderDefault),
                         ),
                         child: ListTile(

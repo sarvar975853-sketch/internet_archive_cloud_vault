@@ -21,9 +21,9 @@ class LoadingScreen extends StatelessWidget {
       child: Center(
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 28),
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             color: AppColors.cardBg,
-            borderRadius: BorderRadius.all(Radius.circular(16)),
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(color: AppColors.borderDefault),
           ),
           child: Column(

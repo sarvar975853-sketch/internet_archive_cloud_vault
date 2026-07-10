@@ -56,7 +56,7 @@ class FastDownloader {
     await raf.close();
 
     // Download chunks
-    final results = await Future.wait(
+    await Future.wait(
       List.generate(numThreads, (i) {
         final start = i * chunkSize;
         final end = i == numThreads - 1 ? totalSize - 1 : (start + chunkSize - 1);

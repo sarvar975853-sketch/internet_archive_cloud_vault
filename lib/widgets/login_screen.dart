@@ -73,9 +73,9 @@ class _LoginScreenState extends State<LoginScreen> {
       body: Center(
         child: Container(
           constraints: const BoxConstraints(maxWidth: 1000, maxHeight: 680),
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             color: AppColors.cardBg,
-            borderRadius: BorderRadius.all(Radius.circular(24)),
+            borderRadius: BorderRadius.circular(24),
             border: Border.all(color: AppColors.borderDefault),
           ),
           child: Row(
@@ -218,9 +218,9 @@ class _FeatureBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.surfaceBg,
-        borderRadius: BorderRadius.all(Radius.circular(20)),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.borderDefault),
       ),
       child: Row(

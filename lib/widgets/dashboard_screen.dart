@@ -50,9 +50,9 @@ class DashboardScreen extends StatelessWidget {
           if (folderFileCounts.isEmpty)
             Container(
               padding: const EdgeInsets.all(32),
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 color: AppColors.cardBg,
-                borderRadius: BorderRadius.all(Radius.circular(12)),
+                borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: AppColors.borderDefault),
               ),
               child: Center(
@@ -113,9 +113,9 @@ class _StatCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.cardBg,
-        borderRadius: BorderRadius.all(Radius.circular(12)),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.borderDefault),
       ),
       child: Column(
@@ -145,9 +145,9 @@ class _FolderCard extends StatelessWidget {
     return Container(
       width: 180,
       padding: const EdgeInsets.all(16),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.cardBg,
-        borderRadius: BorderRadius.all(Radius.circular(12)),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.borderDefault),
       ),
       child: Column(
