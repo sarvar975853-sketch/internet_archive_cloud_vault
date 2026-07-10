@@ -1,0 +1,111 @@
+name: Build macOS Aegis Vault
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  analyze-test:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.x'
+          channel: 'stable'
+          cache: true
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: dart analyze lib/
+
+      - name: Run tests
+        run: flutter test
+
+  build-macos:
+    needs: analyze-test
+    runs-on: macos-14
+    strategy:
+      matrix:
+        xcode-version: [15.4]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.x'
+          channel: 'stable'
+          cache: true
+
+      - name: Enable macOS Desktop
+        run: flutter config --enable-macos-desktop
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Generate macOS platform files
+        run: flutter create --platforms=macos .
+
+      - name: Set minimum macOS version to 10.15
+        run: |
+          # Update Podfile deployment target
+          sed -i '' 's/platform :osx, '.*'/platform :osx, '10.15'/' macos/Podfile
+          # Update Xcode project deployment target
+          sed -i '' 's/MACOSX_DEPLOYMENT_TARGET = [0-9.]\{4,\}/MACOSX_DEPLOYMENT_TARGET = 10.15/g' macos/Runner.xcodeproj/project.pbxproj
+          echo "=== macOS deployment target set to 10.15 ==="
+          grep -n "DEPLOYMENT_TARGET\|platform :osx" macos/Podfile macos/Runner.xcodeproj/project.pbxproj 2>/dev/null || true
+
+      - name: Build macOS app
+        run: flutter build macos --release
+
+      - name: Verify build
+        run: |
+          ls -la build/macos/Build/Products/Release/
+          file build/macos/Build/Products/Release/Aegis\ Vault.app
+          echo "=== Minimum OS version ==="
+          plutil -p build/macos/Build/Products/Release/Aegis\ Vault.app/Contents/Info.plist | grep -i minimum || true
+          otool -l build/macos/Build/Products/Release/Aegis\ Vault.app/Contents/MacOS/Aegis\ Vault 2>/dev/null | grep -A2 LC_VERSION_MIN || true
+
+      - name: Create DMG
+        run: |
+          brew install create-dmg
+          create-dmg \
+            --volname "Aegis Vault" \
+            --window-pos 200 120 \
+            --window-size 600 450 \
+            --icon-size 100 \
+            --icon "Aegis Vault.app" 175 120 \
+            --hide-extension "Aegis Vault.app" \
+            --app-drop-link 425 120 \
+            "Aegis_Vault_v3.5.5.dmg" \
+            "build/macos/Build/Products/Release/"
+
+      - name: Zip .app (fallback)
+        run: |
+          ditto -c -k --sequesterRsrc --keepParent \
+            "build/macos/Build/Products/Release/Aegis Vault.app" \
+            "Aegis_Vault_v3.5.5.zip"
+
+      - name: Upload DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: aegis-vault-macos-dmg
+          path: Aegis_Vault_v3.5.5.dmg
+          retention-days: 30
+
+      - name: Upload ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: aegis-vault-macos-zip
+          path: Aegis_Vault_v3.5.5.zip
+          retention-days: 30
