@@ -16,6 +16,34 @@ Uint8List _generateSecureBytes(int count) {
   return bytes;
 }
 
+void _incrementCounter(Uint8List counter) {
+  for (var i = counter.length - 1; i >= 0; i--) {
+    if (++counter[i] != 0) break;
+  }
+}
+
+Uint8List _ctrCrypt(Uint8List key, Uint8List iv, Uint8List data) {
+  final aes = AESEngine();
+  aes.init(true, KeyParameter(key));
+
+  final counter = Uint8List(iv.length);
+  counter.setRange(0, iv.length, iv);
+
+  final out = Uint8List(data.length);
+  final keystream = Uint8List(16);
+
+  for (var i = 0; i < data.length; i += 16) {
+    aes.processBlock(counter, 0, keystream, 0);
+    _incrementCounter(counter);
+    final remaining = data.length - i;
+    final chunkLen = remaining < 16 ? remaining : 16;
+    for (var j = 0; j < chunkLen; j++) {
+      out[i + j] = data[i + j] ^ keystream[j];
+    }
+  }
+  return out;
+}
+
 class CryptoEngine {
   final AppConfig _config = AppConfig();
   final int _pbkdf2Iterations;
@@ -61,28 +89,22 @@ class CryptoEngine {
       final encKey = _deriveKey(password, salt);
       final hmacKey = _deriveHmacKey(password, salt);
 
-      final cipher = SICBlockCipher(AESEngine())
-        ..init(true, ParametersWithIV(KeyParameter(encKey), iv));
-
-      final out = Uint8List(fileData.length);
-      for (var i = 0; i < fileData.length; i++) {
-        out[i] = cipher.returnByte(fileData[i]);
-      }
+      final ciphertext = _ctrCrypt(encKey, iv, fileData);
 
       final mac = HMac(SHA256Digest(), 64);
       mac.init(KeyParameter(hmacKey));
       mac.update(iv, 0, iv.length);
-      mac.update(out, 0, out.length);
+      mac.update(ciphertext, 0, ciphertext.length);
       final hmacResult = Uint8List(_hmacBytes);
       mac.doFinal(hmacResult, 0);
 
       _ensureDirectory(outputPath);
       final outputFile = File(outputPath);
-      final outBytes = Uint8List(salt.length + iv.length + out.length + hmacResult.length);
+      final outBytes = Uint8List(salt.length + iv.length + ciphertext.length + hmacResult.length);
       outBytes.setRange(0, salt.length, salt);
       outBytes.setRange(salt.length, salt.length + iv.length, iv);
-      outBytes.setRange(salt.length + iv.length, salt.length + iv.length + out.length, out);
-      outBytes.setRange(salt.length + iv.length + out.length, outBytes.length, hmacResult);
+      outBytes.setRange(salt.length + iv.length, salt.length + iv.length + ciphertext.length, ciphertext);
+      outBytes.setRange(salt.length + iv.length + ciphertext.length, outBytes.length, hmacResult);
       outputFile.writeAsBytesSync(outBytes);
 
       return sha256Hash;
@@ -121,14 +143,7 @@ class CryptoEngine {
         throw const DecryptionException('Wrong password or corrupted file');
       }
 
-      final cipher = SICBlockCipher(AESEngine())
-        ..init(false, ParametersWithIV(KeyParameter(encKey), iv));
-
-      final plaintext = Uint8List(ciphertext.length);
-      for (var i = 0; i < ciphertext.length; i++) {
-        plaintext[i] = cipher.returnByte(ciphertext[i]);
-      }
-
+      final plaintext = _ctrCrypt(encKey, iv, ciphertext);
       _ensureDirectory(outputPath);
       File(outputPath).writeAsBytesSync(plaintext);
       return true;

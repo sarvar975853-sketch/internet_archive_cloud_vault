@@ -15,6 +15,34 @@ Uint8List _generateSecureBytes(int count) {
   return bytes;
 }
 
+void _incrementCounter(Uint8List counter) {
+  for (var i = counter.length - 1; i >= 0; i--) {
+    if (++counter[i] != 0) break;
+  }
+}
+
+Uint8List _ctrCrypt(Uint8List key, Uint8List iv, Uint8List data) {
+  final aes = AESEngine();
+  aes.init(true, KeyParameter(key));
+
+  final counter = Uint8List(iv.length);
+  counter.setRange(0, iv.length, iv);
+
+  final out = Uint8List(data.length);
+  final keystream = Uint8List(16);
+
+  for (var i = 0; i < data.length; i += 16) {
+    aes.processBlock(counter, 0, keystream, 0);
+    _incrementCounter(counter);
+    final remaining = data.length - i;
+    final chunkLen = remaining < 16 ? remaining : 16;
+    for (var j = 0; j < chunkLen; j++) {
+      out[i + j] = data[i + j] ^ keystream[j];
+    }
+  }
+  return out;
+}
+
 class CredentialManager {
   final AppConfig _config = AppConfig();
   String? _cachedAccessKey;
@@ -48,14 +76,7 @@ class CredentialManager {
   Future<Uint8List> _encryptWithKey(Uint8List key, String data) async {
     final iv = _generateSecureBytes(_ivBytes);
     final plaintext = utf8.encode(data);
-
-    final cipher = SICBlockCipher(AESEngine())
-      ..init(true, ParametersWithIV(KeyParameter(key), iv));
-
-    final out = Uint8List(plaintext.length);
-    for (var i = 0; i < plaintext.length; i++) {
-      out[i] = cipher.returnByte(plaintext[i]);
-    }
+    final out = _ctrCrypt(key, iv, Uint8List.fromList(plaintext));
 
     final mac = HMac(SHA256Digest(), 64);
     mac.init(KeyParameter(key));
@@ -91,14 +112,7 @@ class CredentialManager {
       throw const CredentialException('Credential file corrupted');
     }
 
-    final cipher = SICBlockCipher(AESEngine())
-      ..init(false, ParametersWithIV(KeyParameter(key), iv));
-
-    final plaintext = Uint8List(ciphertext.length);
-    for (var i = 0; i < ciphertext.length; i++) {
-      plaintext[i] = cipher.returnByte(ciphertext[i]);
-    }
-
+    final plaintext = _ctrCrypt(key, iv, ciphertext);
     return utf8.decode(plaintext);
   }
 
