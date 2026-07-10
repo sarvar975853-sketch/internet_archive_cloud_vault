@@ -5,8 +5,8 @@ import '../widgets/toast.dart';
 class ExplorerScreen extends StatefulWidget {
   final String? currentFolder;
   final List<Map<String, dynamic>> files;
-  final Function(List<String> filenames, String password, bool samePassword)? onDownload;
-  final Function(String filename)? onDelete;
+  final void Function(List<String> filenames, String password, bool samePassword)? onDownload;
+  final void Function(String filename)? onDelete;
   final bool isLoading;
 
   const ExplorerScreen({
@@ -43,16 +43,6 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
     _searchController.dispose();
     _passwordController.dispose();
     super.dispose();
-  }
-
-  void _toggleSelectAll() {
-    setState(() {
-      if (_selectedIndices.length == _filteredFiles.length) {
-        _selectedIndices.clear();
-      } else {
-        _selectedIndices.addAll(List.generate(_filteredFiles.length, (i) => i));
-      }
-    });
   }
 
   void _download() {

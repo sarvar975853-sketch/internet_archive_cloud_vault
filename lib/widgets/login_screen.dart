@@ -3,7 +3,7 @@ import '../theme/app_theme.dart';
 import '../core/credentials.dart';
 
 class LoginScreen extends StatefulWidget {
-  final Function(String accessKey, String secretKey) onLogin;
+  final void Function(String accessKey, String secretKey) onLogin;
 
   const LoginScreen({super.key, required this.onLogin});
 

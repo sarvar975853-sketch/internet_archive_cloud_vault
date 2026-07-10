@@ -1,11 +1,11 @@
 import 'dart:async';
-import 'config.dart';
 
 class PriorityQueue<T extends Comparable<T>> {
   final List<T> _list = [];
   void add(T item) { _list.add(item); _list.sort(); }
   bool get isNotEmpty => _list.isNotEmpty;
   bool get isEmpty => _list.isEmpty;
+  int get length => _list.length;
   T get first => _list.first;
   T removeFirst() => _list.removeAt(0);
   void clear() => _list.clear();

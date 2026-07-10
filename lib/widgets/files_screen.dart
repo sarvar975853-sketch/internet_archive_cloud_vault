@@ -5,8 +5,8 @@ import '../widgets/toast.dart';
 class FilesScreen extends StatefulWidget {
   final String? currentFolder;
   final List<Map<String, dynamic>> files;
-  final Function(String filename)? onDownload;
-  final Function(String filename)? onDelete;
+  final void Function(String filename)? onDownload;
+  final void Function(String filename)? onDelete;
   final bool isLoading;
 
   const FilesScreen({

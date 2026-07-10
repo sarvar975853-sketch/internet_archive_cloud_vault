@@ -3,7 +3,7 @@ import '../theme/app_theme.dart';
 import '../widgets/toast.dart';
 
 class OmniFetchTab extends StatefulWidget {
-  final Function(String url, String? quality, String? format, String? outputDir)? onSubmit;
+  final void Function(String url, String? quality, String? format, String? outputDir)? onSubmit;
   const OmniFetchTab({super.key, this.onSubmit});
 
   @override

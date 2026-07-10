@@ -11,9 +11,7 @@ Uint8List _generateSecureBytes(int count) {
   final mathRandom = math.Random.secure();
   final seed = Uint8List.fromList(List.generate(32, (_) => mathRandom.nextInt(256)));
   rng.seed(KeyParameter(seed));
-  final result = Uint8List(count);
-  rng.nextBytes(result);
-  return result;
+  return rng.nextBytes(count);
 }
 
 class CredentialManager {
@@ -43,8 +41,7 @@ class CredentialManager {
       final secureRandom = FortunaRandom()
         ..seed(KeyParameter(seed));
       
-      final key = Uint8List(32);
-      secureRandom.nextBytes(key);
+      final key = secureRandom.nextBytes(32);
       
       await _ensureDir(path);
       await file.writeAsString(base64Encode(key));

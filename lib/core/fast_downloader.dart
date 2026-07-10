@@ -143,7 +143,7 @@ class FastDownloader {
   String _extractFilename(String url, Map<String, String> headers) {
     final cd = headers['content-disposition'];
     if (cd != null) {
-      final match = RegExp(r"filename[^;=\n]*=(([\"']).*?\2|[^;\n]*)").firstMatch(cd);
+      final match = RegExp("filename[^;=\\n]*=(([\"']).*?\\2|[^;\\n]*)").firstMatch(cd);
       if (match != null) {
         return match.group(1)?.replaceAll('"', '').trim() ?? 'download';
       }

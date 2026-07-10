@@ -7,8 +7,8 @@ class Sidebar extends StatefulWidget {
   final String? currentFolder;
   final VoidCallback onRefresh;
   final VoidCallback onCreateFolder;
-  final Function(String) onFolderSelected;
-  final Function(String) onManualFolder;
+  final void Function(String) onFolderSelected;
+  final void Function(String) onManualFolder;
   final VoidCallback onLogout;
 
   const Sidebar({

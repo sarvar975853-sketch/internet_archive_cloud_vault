@@ -231,7 +231,7 @@ class URLDownloader {
   String _extractFilenameFromHeaders(Map<String, String> headers, String fallback) {
     final cd = headers['content-disposition'];
     if (cd != null) {
-      final match = RegExp(r"filename[^;=\n]*=(([\"']).*?\2|[^;\n]*)").firstMatch(cd);
+      final match = RegExp("filename[^;=\\n]*=(([\"']).*?\\2|[^;\\n]*)").firstMatch(cd);
       if (match != null) {
         return match.group(1)?.replaceAll('"', '').trim() ?? fallback;
       }
