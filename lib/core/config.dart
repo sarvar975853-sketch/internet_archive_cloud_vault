@@ -1,5 +1,6 @@
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
+import 'package:meta/meta.dart';
 
 class AppConfig {
   // Singleton
@@ -16,6 +17,11 @@ class AppConfig {
   Future<String> get configDir async {
     _configDir ??= (await getApplicationSupportDirectory()).path;
     return _configDir!;
+  }
+
+  @visibleForTesting
+  void setConfigDirForTest(String dir) {
+    _configDir = dir;
   }
 
   Future<String> get credentialFile async =>
