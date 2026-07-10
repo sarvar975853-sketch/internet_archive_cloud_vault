@@ -1,10 +1,8 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:math';
 import 'package:http/http.dart' as http;
-import 'package:path/path.dart' as p;
 import 'package:crypto/crypto.dart' as dart_crypto;
-import 'package:collection/collection.dart';
 import 'config.dart';
 import 'exceptions.dart';
 import 'fast_downloader.dart';
@@ -15,17 +13,12 @@ class IAStorageEngine {
   final String secretKey;
   final http.Client _client;
   final Map<String, _CacheEntry> _metadataCache = {};
-  String? _uploaderEmail;
+  String? uploaderEmail;
   List<String>? _cachedFolders;
   DateTime? _folderCacheTime;
 
-  IAStorageEngine(this.accessKey, this.secretKey, {String? uploaderEmail, http.Client? client})
-      : _client = client ?? http.Client() {
-    _uploaderEmail = uploaderEmail;
-  }
-
-  String? get uploaderEmail => _uploaderEmail;
-  set uploaderEmail(String? email) => _uploaderEmail = email;
+  IAStorageEngine(this.accessKey, this.secretKey, {this.uploaderEmail, http.Client? client})
+      : _client = client ?? http.Client();
 
   // ─── Folder Management ──────────────────────────────────────
 
@@ -41,7 +34,7 @@ class IAStorageEngine {
 
   Future<List<String>> _refreshFolders() async {
     try {
-      final email = _uploaderEmail ?? await _getUserEmailFromCredentials();
+      final email = uploaderEmail ?? await _getUserEmailFromCredentials();
       if (email == null) return List.from(_config.knownFolders);
       
       final items = await _searchByUploader(email);
@@ -315,7 +308,7 @@ class IAStorageEngine {
 
   String _buildAuthHeader(String method, String resource) {
     final stringToSign = '$method\n\napplication/octet-stream\n\nx-amz-auto-make-bucket:1\n/$resource';
-    final hmac = Hmac(dart_crypto.sha256, utf8.encode(secretKey));
+    final hmac = dart_crypto.Hmac(dart_crypto.sha256, utf8.encode(secretKey));
     final digest = hmac.convert(utf8.encode(stringToSign));
     final signature = base64Encode(digest.bytes);
     return 'AWS $accessKey:$signature';

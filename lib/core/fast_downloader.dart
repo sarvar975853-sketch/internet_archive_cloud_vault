@@ -1,7 +1,5 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
-import 'dart:isolate';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 import 'config.dart';
@@ -145,7 +143,7 @@ class FastDownloader {
   String _extractFilename(String url, Map<String, String> headers) {
     final cd = headers['content-disposition'];
     if (cd != null) {
-      final match = RegExp(r'filename[^;=\n]*=((["\']).*?\2|[^;\n]*)').firstMatch(cd);
+      final match = RegExp(r"filename[^;=\n]*=(([\"']).*?\2|[^;\n]*)").firstMatch(cd);
       if (match != null) {
         return match.group(1)?.replaceAll('"', '').trim() ?? 'download';
       }

@@ -1,10 +1,21 @@
 import 'dart:io';
 import 'dart:convert';
+import 'dart:math' as math;
 import 'dart:typed_data';
 import 'package:pointycastle/export.dart';
 import 'package:crypto/crypto.dart' as dart_crypto;
 import 'exceptions.dart';
 import 'config.dart';
+
+Uint8List _generateSecureBytes(int count) {
+  final rng = FortunaRandom();
+  final mathRandom = math.Random.secure();
+  final seed = Uint8List.fromList(List.generate(32, (_) => mathRandom.nextInt(256)));
+  rng.seed(KeyParameter(seed));
+  final result = Uint8List(count);
+  rng.nextBytes(result);
+  return result;
+}
 
 class CryptoEngine {
   final AppConfig _config = AppConfig();
@@ -12,7 +23,7 @@ class CryptoEngine {
   Uint8List _deriveKey(String password, Uint8List salt) {
     final pbkdf2 = PBKDF2KeyDerivator(HMac(SHA256Digest(), 64));
     pbkdf2.init(Pbkdf2Parameters(salt, _config.pbkdf2Iterations, 32));
-    return pbkdf2.process(utf8.encode(password) as Uint8List);
+    return pbkdf2.process(Uint8List.fromList(utf8.encode(password)));
   }
 
   String calculateSha256(String filePath) {
@@ -35,16 +46,8 @@ class CryptoEngine {
       final sha256Hash = calculateSha256(filePath);
 
       // Generate random salt and nonce
-      final secureRandom = FortunaRandom();
-      final seed = Uint8List(32);
-      SecureRandom().nextBytes(seed);
-      secureRandom.seed(KeyParameter(seed));
-
-      final salt = Uint8List(_config.encryptionSaltBytes);
-      secureRandom.nextBytes(salt);
-
-      final nonce = Uint8List(12); // GCM standard nonce size
-      secureRandom.nextBytes(nonce);
+      final salt = _generateSecureBytes(_config.encryptionSaltBytes);
+      final nonce = _generateSecureBytes(12); // GCM standard nonce size
 
       // Derive key from password
       final key = _deriveKey(password, salt);
@@ -109,7 +112,7 @@ class CryptoEngine {
       rethrow;
     } on DecryptionException {
       rethrow;
-    } on ArgumentException {
+    } on ArgumentError {
       throw DecryptionException('Wrong password or corrupted file');
     } catch (e) {
       throw CryptoException('Decryption failed: $e', cause: e);

@@ -1,11 +1,20 @@
 import 'dart:io';
 import 'dart:convert';
+import 'dart:math' as math;
 import 'dart:typed_data';
 import 'package:pointycastle/export.dart';
-import 'package:crypto/crypto.dart' as dart_crypto;
-import 'package:path/path.dart' as p;
 import 'config.dart';
 import 'exceptions.dart';
+
+Uint8List _generateSecureBytes(int count) {
+  final rng = FortunaRandom();
+  final mathRandom = math.Random.secure();
+  final seed = Uint8List.fromList(List.generate(32, (_) => mathRandom.nextInt(256)));
+  rng.seed(KeyParameter(seed));
+  final result = Uint8List(count);
+  rng.nextBytes(result);
+  return result;
+}
 
 class CredentialManager {
   final AppConfig _config = AppConfig();
@@ -29,10 +38,10 @@ class CredentialManager {
       final content = await file.readAsString();
       return base64Decode(content.trim());
     } else {
-      final secureRandom = FortunaRandom();
-      final seed = Uint8List(32);
-      SecureRandom().nextBytes(seed);
-      secureRandom.seed(KeyParameter(seed));
+      final mathRandom = math.Random.secure();
+      final seed = Uint8List.fromList(List.generate(32, (_) => mathRandom.nextInt(256)));
+      final secureRandom = FortunaRandom()
+        ..seed(KeyParameter(seed));
       
       final key = Uint8List(32);
       secureRandom.nextBytes(key);
@@ -45,13 +54,7 @@ class CredentialManager {
 
   /// Encrypts credentials with the machine key (AES-256-GCM).
   Future<Uint8List> _encryptWithKey(Uint8List key, String data) async {
-    final secureRandom = FortunaRandom();
-    final seed = Uint8List(32);
-    SecureRandom().nextBytes(seed);
-    secureRandom.seed(KeyParameter(seed));
-
-    final nonce = Uint8List(12);
-    secureRandom.nextBytes(nonce);
+    final nonce = _generateSecureBytes(12);
 
     final plaintext = utf8.encode(data);
     final cipher = GCMBlockCipher(AESEngine())
@@ -154,8 +157,7 @@ class CredentialManager {
       final credFile = File(credPath);
       if (await credFile.exists()) {
         final len = await credFile.length();
-        final randomData = Uint8List(len > 0 ? len : 128);
-        SecureRandom().nextBytes(randomData);
+        final randomData = _generateSecureBytes(len > 0 ? len : 128);
         await credFile.writeAsBytes(randomData);
         await credFile.delete();
       }

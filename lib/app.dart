@@ -14,7 +14,6 @@ import 'widgets/upload_screen.dart';
 import 'widgets/url_upload_screen.dart';
 import 'widgets/explorer_screen.dart';
 import 'widgets/files_screen.dart';
-import 'widgets/omnifetch_screen.dart';
 import 'widgets/settings_screen.dart';
 import 'widgets/toast.dart';
 
@@ -188,6 +187,7 @@ class AppState extends ChangeNotifier {
     aegisLogger.info('Task $taskName: $status');
   }
 
+  @override
   void dispose() {
     queueWorker?.stop();
     storageEngine?.dispose();

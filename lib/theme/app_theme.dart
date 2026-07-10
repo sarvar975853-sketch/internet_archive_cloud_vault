@@ -129,9 +129,9 @@ class AppTheme {
         ),
       ),
 
-      progressIndicatorTheme: const ProgressIndicatorThemeData(
+      progressIndicatorTheme: ProgressIndicatorThemeData(
         color: AppColors.progressFill,
-        backgroundColor: AppColors.progressBg,
+        linearTrackColor: AppColors.progressBg,
       ),
 
       dialogTheme: DialogTheme(

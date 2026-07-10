@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:window_manager/window_manager.dart';
 import 'app.dart';
-import 'version.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

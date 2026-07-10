@@ -75,8 +75,6 @@ class ToastWidget extends StatelessWidget {
 }
 
 class ToastManager {
-  static final GlobalKey<_ToastOverlayState> _key = GlobalKey<_ToastOverlayState>();
-
   static OverlayEntry? _show({
     required BuildContext context,
     required String message,

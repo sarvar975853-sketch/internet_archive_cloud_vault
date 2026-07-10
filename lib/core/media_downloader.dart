@@ -1,12 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
+import 'dart:io' as io;
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
-import '../core/config.dart';
-import '../core/exceptions.dart';
 
-enum Platform { youtube, instagram, tiktok, twitter, reddit, twitch, spotify, jiosaavn, wynk, generic }
+enum MediaPlatform { youtube, instagram, tiktok, twitter, reddit, twitch, spotify, jiosaavn, wynk, generic }
 
 enum DownloadStatus { queued, extracting, downloading, processing, completed, error, cancelled }
 
@@ -50,7 +48,7 @@ class DownloadTask {
   final String id;
   final String url;
   String? title;
-  final Platform platform;
+  final MediaPlatform platform;
   DownloadStatus status;
   double progress;
   double speed;
@@ -63,7 +61,7 @@ class DownloadTask {
   String? error;
   List<StreamFormat> formats;
   DateTime? startTime;
-  Process? _process;
+  io.Process? _process;
 
   DownloadTask({
     required this.id, required this.url, this.title,
@@ -76,7 +74,7 @@ class DownloadTask {
 
   void cancel() {
     if (_process != null) {
-      _process!.kill(ProcessSignal.sigterm);
+      _process!.kill(io.ProcessSignal.sigterm);
       _process = null;
     }
     status = DownloadStatus.cancelled;
@@ -84,7 +82,6 @@ class DownloadTask {
 }
 
 class MediaDownloader {
-  final AppConfig _config = AppConfig();
   final String downloadDir;
   final int maxConcurrent;
   final int aria2Chunks;
@@ -110,11 +107,11 @@ class MediaDownloader {
   }
 
   String? _which(String name) {
-    final paths = (Platform.environment['PATH'] ?? '').split(':');
+    final paths = (io.Platform.environment['PATH'] ?? '').split(':');
     for (final dir in paths) {
       final fullPath = p.join(dir, name);
-      if (File(fullPath).existsSync()) return fullPath;
-      if (Platform.isWindows && File('$fullPath.exe').existsSync()) return '$fullPath.exe';
+      if (io.File(fullPath).existsSync()) return fullPath;
+      if (io.Platform.isWindows && io.File('$fullPath.exe').existsSync()) return '$fullPath.exe';
     }
     return null;
   }
@@ -133,7 +130,7 @@ class MediaDownloader {
     }
 
     try {
-      final result = await Process.run(_ytdlpPath!, [
+      final result = await io.Process.run(_ytdlpPath!, [
         '--dump-json',
         '--no-download',
         url,
@@ -172,17 +169,17 @@ class MediaDownloader {
     return task;
   }
 
-  Platform _detectPlatform(String url) {
-    if (url.contains('youtube.com') || url.contains('youtu.be')) return Platform.youtube;
-    if (url.contains('instagram.com')) return Platform.instagram;
-    if (url.contains('tiktok.com')) return Platform.tiktok;
-    if (url.contains('twitter.com') || url.contains('x.com')) return Platform.twitter;
-    if (url.contains('reddit.com')) return Platform.reddit;
-    if (url.contains('twitch.tv')) return Platform.twitch;
-    if (url.contains('spotify.com')) return Platform.spotify;
-    if (url.contains('jiosaavn.com')) return Platform.jiosaavn;
-    if (url.contains('wynk.in')) return Platform.wynk;
-    return Platform.generic;
+  MediaPlatform _detectPlatform(String url) {
+    if (url.contains('youtube.com') || url.contains('youtu.be')) return MediaPlatform.youtube;
+    if (url.contains('instagram.com')) return MediaPlatform.instagram;
+    if (url.contains('tiktok.com')) return MediaPlatform.tiktok;
+    if (url.contains('twitter.com') || url.contains('x.com')) return MediaPlatform.twitter;
+    if (url.contains('reddit.com')) return MediaPlatform.reddit;
+    if (url.contains('twitch.tv')) return MediaPlatform.twitch;
+    if (url.contains('spotify.com')) return MediaPlatform.spotify;
+    if (url.contains('jiosaavn.com')) return MediaPlatform.jiosaavn;
+    if (url.contains('wynk.in')) return MediaPlatform.wynk;
+    return MediaPlatform.generic;
   }
 
   DownloadTask? getTask(String id) => _tasks[id];
@@ -229,7 +226,7 @@ class MediaDownloader {
       final outputTemplate = p.join(task.outputPath ?? downloadDir, '%(title)s.%(ext)s');
       final args = _buildYtdlpArgs(task, outputTemplate);
       
-      task._process = await Process.start(_ytdlpPath!, args);
+      task._process = await io.Process.start(_ytdlpPath!, args);
       task.startTime = DateTime.now();
 
       // Parse progress from stderr
@@ -329,7 +326,7 @@ class MediaDownloader {
     final outputPath = inputPath.replaceAll(p.extension(inputPath), '.$targetExt');
     
     try {
-      final result = await Process.run(_ffmpegPath!, [
+      final result = await io.Process.run(_ffmpegPath!, [
         '-i', inputPath,
         '-vn',
         '-acodec', _codecForFormat(targetExt),
@@ -338,7 +335,7 @@ class MediaDownloader {
       ]);
 
       if (result.exitCode == 0) {
-        File(inputPath).deleteSync();
+        io.File(inputPath).deleteSync();
         return outputPath;
       }
     } catch (_) {}
@@ -387,10 +384,10 @@ class MediaDownloader {
   }
 
   String? _findDownloadedFile(String directory, String titleHint) {
-    final dir = Directory(directory);
+    final dir = io.Directory(directory);
     if (!dir.existsSync()) return null;
     
-    final files = dir.listSync().whereType<File>().toList()
+    final files = dir.listSync().whereType<io.File>().toList()
       ..sort((a, b) => b.statSync().modified.compareTo(a.statSync().modified));
     
     return files.isNotEmpty ? files.first.path : null;

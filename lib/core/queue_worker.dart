@@ -1,6 +1,15 @@
 import 'dart:async';
-import 'dart:collection';
 import 'config.dart';
+
+class PriorityQueue<T extends Comparable<T>> {
+  final List<T> _list = [];
+  void add(T item) { _list.add(item); _list.sort(); }
+  bool get isNotEmpty => _list.isNotEmpty;
+  bool get isEmpty => _list.isEmpty;
+  T get first => _list.first;
+  T removeFirst() => _list.removeAt(0);
+  void clear() => _list.clear();
+}
 
 enum TaskPriority { high, normal, low }
 
@@ -27,7 +36,6 @@ class Task {
 }
 
 class QueueWorker {
-  final AppConfig _config = AppConfig();
   final _taskQueue = PriorityQueue<_QueueEntry>();
   final _activeTasks = <String, Task>{};
   final StreamController<QueueEvent> _eventController = StreamController<QueueEvent>.broadcast();
@@ -35,6 +43,7 @@ class QueueWorker {
   bool _running = false;
   int _concurrentTasks = 0;
   final int _maxWorkers;
+  bool _stopped = false;
 
   Stream<QueueEvent> get events => _eventController.stream;
   int get activeTaskCount => _activeTasks.length;
@@ -101,9 +110,9 @@ class QueueWorker {
         _eventController.add(QueueEvent(QueueEventType.completed, task, result: result));
       }
     } on TimeoutException {
-      if (!task.isCancelled && task.retryCount < task.maxRetries) {
+      if (!_stopped && !task.isCancelled && task.retryCount < task.maxRetries) {
         task.retryCount++;
-        await Future.delayed(Duration(seconds: task.retryCount * 2));
+        await Future<void>.delayed(Duration(seconds: task.retryCount * 2));
         _taskQueue.add(_QueueEntry(
           task.priority == TaskPriority.high ? 0 : task.priority == TaskPriority.normal ? 1 : 2,
           DateTime.now().millisecondsSinceEpoch,
@@ -115,9 +124,9 @@ class QueueWorker {
             error: 'Task timed out after ${task.timeoutSeconds}s'));
       }
     } catch (e) {
-      if (!task.isCancelled && task.retryCount < task.maxRetries) {
+      if (!_stopped && !task.isCancelled && task.retryCount < task.maxRetries) {
         task.retryCount++;
-        await Future.delayed(Duration(seconds: task.retryCount * 2));
+        await Future<void>.delayed(Duration(seconds: task.retryCount * 2));
         _taskQueue.add(_QueueEntry(
           task.priority == TaskPriority.high ? 0 : task.priority == TaskPriority.normal ? 1 : 2,
           DateTime.now().millisecondsSinceEpoch,
@@ -146,7 +155,7 @@ class QueueWorker {
     checkDone();
 
     if (timeout != null) {
-      Future.delayed(timeout, () {
+      Future<void>.delayed(timeout, () {
         if (!completer.isCompleted) completer.complete();
       });
     }
@@ -156,6 +165,7 @@ class QueueWorker {
   }
 
   void stop() {
+    _stopped = true;
     _running = false;
     _processingTimer?.cancel();
     _taskQueue.clear();

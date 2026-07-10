@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 
@@ -73,7 +72,5 @@ class AppConfig {
   final String userAgent = 'AegisVault/3.5.5';
 
   // Session
-  String? _uploaderEmail;
-  String? get uploaderEmail => _uploaderEmail;
-  set uploaderEmail(String? email) => _uploaderEmail = email;
+  String? uploaderEmail;
 }

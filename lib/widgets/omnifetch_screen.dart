@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:async';
 import '../theme/app_theme.dart';
 import '../widgets/toast.dart';
 
@@ -82,7 +81,7 @@ class _OmniFetchTabState extends State<OmniFetchTab> with SingleTickerProviderSt
         child: Column(children: [
           const SizedBox(height: 20),
           _NavItem(icon: Icons.add_circle_outline, label: 'New Download', isActive: _activeNav == 'input', onTap: () => setState(() => _activeNav = 'input')),
-          _NavItem(icon: Icons.rocket_launch_outline, label: 'Active', isActive: _activeNav == 'active', onTap: () => setState(() => _activeNav = 'active')),
+          _NavItem(icon: Icons.downloading, label: 'Active', isActive: _activeNav == 'active', onTap: () => setState(() => _activeNav = 'active')),
           _NavItem(icon: Icons.check_circle_outline, label: 'Completed', isActive: _activeNav == 'completed', onTap: () => setState(() => _activeNav = 'completed')),
           _NavItem(icon: Icons.settings_outlined, label: 'Settings', isActive: _activeNav == 'settings', onTap: () => setState(() => _activeNav = 'settings')),
         ]),
