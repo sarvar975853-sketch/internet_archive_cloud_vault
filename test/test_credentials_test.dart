@@ -3,6 +3,7 @@ import 'package:aegis_vault/core/credentials.dart';
 import 'dart:io';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   late CredentialManager manager;
   late String tempDir;
 

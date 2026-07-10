@@ -20,6 +20,8 @@ class CredentialManager {
   String? _cachedAccessKey;
   String? _cachedSecretKey;
   bool _loaded = false;
+  static const int _ivBytes = 16;
+  static const int _hmacBytes = 32;
 
   Future<String> get _machineKeyPath => _config.keyFile;
   Future<String> get _credentialPath => _config.credentialFile;
@@ -29,7 +31,6 @@ class CredentialManager {
     if (!await dir.exists()) await dir.create(recursive: true);
   }
 
-  /// Loads or creates the local machine key (32 random bytes, base64-encoded).
   Future<Uint8List> _loadOrCreateKey() async {
     final path = await _machineKeyPath;
     final file = File(path);
@@ -44,43 +45,63 @@ class CredentialManager {
     }
   }
 
-  /// Encrypts credentials with the machine key (AES-256-GCM).
   Future<Uint8List> _encryptWithKey(Uint8List key, String data) async {
-    final nonce = _generateSecureBytes(12);
-
+    final iv = _generateSecureBytes(_ivBytes);
     final plaintext = utf8.encode(data);
-    final cipher = GCMBlockCipher(AESEngine())
-      ..init(true, AEADParameters(KeyParameter(key), 128, nonce, Uint8List(0)));
 
-    final encrypted = Uint8List(cipher.getOutputSize(plaintext.length));
-    final len = cipher.processBytes(plaintext, 0, plaintext.length, encrypted, 0);
-    cipher.doFinal(encrypted, len);
+    final cipher = SICBlockCipher(AESEngine())
+      ..init(true, ParametersWithIV(KeyParameter(key), iv));
 
-    final result = Uint8List(nonce.length + encrypted.length);
-    result.setRange(0, nonce.length, nonce);
-    result.setRange(nonce.length, result.length, encrypted);
+    final out = Uint8List(plaintext.length);
+    for (var i = 0; i < plaintext.length; i++) {
+      out[i] = cipher.returnByte(plaintext[i]);
+    }
+
+    final mac = HMac(SHA256Digest(), 64);
+    mac.init(KeyParameter(key));
+    mac.update(iv, 0, iv.length);
+    mac.update(out, 0, out.length);
+    final hmacResult = Uint8List(_hmacBytes);
+    mac.doFinal(hmacResult, 0);
+
+    final result = Uint8List(iv.length + out.length + hmacResult.length);
+    result.setRange(0, iv.length, iv);
+    result.setRange(iv.length, iv.length + out.length, out);
+    result.setRange(iv.length + out.length, result.length, hmacResult);
     return result;
   }
 
-  /// Decrypts data with machine key.
   Future<String> _decryptWithKey(Uint8List key, Uint8List data) async {
-    if (data.length < 12 + 16) {
+    if (data.length < _ivBytes + _hmacBytes) {
       throw const CredentialException('Credential file corrupted');
     }
-    final nonce = data.sublist(0, 12);
-    final encrypted = data.sublist(12);
+    final iv = data.sublist(0, _ivBytes);
+    final ctLen = data.length - _ivBytes - _hmacBytes;
+    final ciphertext = data.sublist(_ivBytes, _ivBytes + ctLen);
+    final storedHmac = data.sublist(_ivBytes + ctLen);
 
-    final cipher = GCMBlockCipher(AESEngine())
-      ..init(false, AEADParameters(KeyParameter(key), 128, nonce, Uint8List(0)));
+    final mac = HMac(SHA256Digest(), 64);
+    mac.init(KeyParameter(key));
+    mac.update(iv, 0, iv.length);
+    mac.update(ciphertext, 0, ciphertext.length);
+    final computedHmac = Uint8List(_hmacBytes);
+    mac.doFinal(computedHmac, 0);
 
-    final decrypted = Uint8List(cipher.getOutputSize(encrypted.length));
-    final len = cipher.processBytes(encrypted, 0, encrypted.length, decrypted, 0);
-    final finalLen = cipher.doFinal(decrypted, len);
+    if (!_constantTimeEquals(computedHmac, storedHmac)) {
+      throw const CredentialException('Credential file corrupted');
+    }
 
-    return utf8.decode(decrypted.sublist(0, len + finalLen));
+    final cipher = SICBlockCipher(AESEngine())
+      ..init(false, ParametersWithIV(KeyParameter(key), iv));
+
+    final plaintext = Uint8List(ciphertext.length);
+    for (var i = 0; i < ciphertext.length; i++) {
+      plaintext[i] = cipher.returnByte(ciphertext[i]);
+    }
+
+    return utf8.decode(plaintext);
   }
 
-  /// Saves credentials (access, secret) to encrypted local file.
   Future<void> saveCredentials(String access, String secret) async {
     try {
       final machineKey = await _loadOrCreateKey();
@@ -99,7 +120,6 @@ class CredentialManager {
     }
   }
 
-  /// Loads credentials from encrypted local file.
   Future<Map<String, String?>> loadCredentials() async {
     try {
       final credentialPath = await _credentialPath;
@@ -124,19 +144,16 @@ class CredentialManager {
     }
   }
 
-  /// Returns cached or loaded credentials.
   Future<Map<String, String?>> getCredentials() async {
     if (!_loaded) return loadCredentials();
     return {'access_key': _cachedAccessKey, 'secret_key': _cachedSecretKey};
   }
 
-  /// Clears credentials: zeroizes key file and credential file, then deletes them.
   Future<void> clearCredentials() async {
     try {
       final keyPath = await _machineKeyPath;
       final credPath = await _credentialPath;
 
-      // Zeroize key file
       final keyFile = File(keyPath);
       if (await keyFile.exists()) {
         final len = await keyFile.length();
@@ -145,7 +162,6 @@ class CredentialManager {
         await keyFile.delete();
       }
 
-      // Zeroize credential file
       final credFile = File(credPath);
       if (await credFile.exists()) {
         final len = await credFile.length();
@@ -160,5 +176,14 @@ class CredentialManager {
     } catch (e) {
       throw CredentialException('Failed to clear credentials: $e', cause: e);
     }
+  }
+
+  bool _constantTimeEquals(Uint8List a, Uint8List b) {
+    if (a.length != b.length) return false;
+    var result = 0;
+    for (var i = 0; i < a.length; i++) {
+      result |= a[i] ^ b[i];
+    }
+    return result == 0;
   }
 }

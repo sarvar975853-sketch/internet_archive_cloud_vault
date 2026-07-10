@@ -19,13 +19,23 @@ Uint8List _generateSecureBytes(int count) {
 class CryptoEngine {
   final AppConfig _config = AppConfig();
   final int _pbkdf2Iterations;
+  static const int _ivBytes = 16;
+  static const int _hmacBytes = 32;
+  static const int _keyBytes = 32;
 
   CryptoEngine({int? pbkdf2Iterations})
       : _pbkdf2Iterations = pbkdf2Iterations ?? AppConfig().pbkdf2Iterations;
 
   Uint8List _deriveKey(String password, Uint8List salt) {
     final pbkdf2 = PBKDF2KeyDerivator(HMac(SHA256Digest(), 64));
-    pbkdf2.init(Pbkdf2Parameters(salt, _pbkdf2Iterations, 32));
+    pbkdf2.init(Pbkdf2Parameters(salt, _pbkdf2Iterations, _keyBytes));
+    return pbkdf2.process(Uint8List.fromList(utf8.encode(password)));
+  }
+
+  Uint8List _deriveHmacKey(String password, Uint8List salt) {
+    final pbkdf2 = PBKDF2KeyDerivator(HMac(SHA256Digest(), 64));
+    final hmacSalt = Uint8List.fromList([...salt, 0x01]);
+    pbkdf2.init(Pbkdf2Parameters(hmacSalt, _pbkdf2Iterations, _keyBytes));
     return pbkdf2.process(Uint8List.fromList(utf8.encode(password)));
   }
 
@@ -41,36 +51,38 @@ class CryptoEngine {
     if (!dir.existsSync()) dir.createSync(recursive: true);
   }
 
-  /// Encrypts file at [filePath] with [password], writes to [outputPath].
-  /// Returns the SHA-256 hex digest of the original file.
   String encryptFile(String filePath, String password, String outputPath) {
     try {
       final fileData = File(filePath).readAsBytesSync();
       final sha256Hash = calculateSha256(filePath);
 
-      // Generate random salt and nonce
       final salt = _generateSecureBytes(_config.encryptionSaltBytes);
-      final nonce = _generateSecureBytes(12); // GCM standard nonce size
+      final iv = _generateSecureBytes(_ivBytes);
+      final encKey = _deriveKey(password, salt);
+      final hmacKey = _deriveHmacKey(password, salt);
 
-      // Derive key from password
-      final key = _deriveKey(password, salt);
+      final cipher = SICBlockCipher(AESEngine())
+        ..init(true, ParametersWithIV(KeyParameter(encKey), iv));
 
-      // AES-256-GCM encrypt
-      final cipher = GCMBlockCipher(AESEngine())
-        ..init(true, AEADParameters(KeyParameter(key), 128, nonce, Uint8List(0)));
+      final out = Uint8List(fileData.length);
+      for (var i = 0; i < fileData.length; i++) {
+        out[i] = cipher.returnByte(fileData[i]);
+      }
 
-      // Process all data
-      final encrypted = Uint8List(cipher.getOutputSize(fileData.length));
-      final len = cipher.processBytes(fileData, 0, fileData.length, encrypted, 0);
-      cipher.doFinal(encrypted, len);
+      final mac = HMac(SHA256Digest(), 64);
+      mac.init(KeyParameter(hmacKey));
+      mac.update(iv, 0, iv.length);
+      mac.update(out, 0, out.length);
+      final hmacResult = Uint8List(_hmacBytes);
+      mac.doFinal(hmacResult, 0);
 
-      // Write: salt + nonce + encrypted (includes GCM tag)
       _ensureDirectory(outputPath);
       final outputFile = File(outputPath);
-      final outBytes = Uint8List(salt.length + nonce.length + encrypted.length);
+      final outBytes = Uint8List(salt.length + iv.length + out.length + hmacResult.length);
       outBytes.setRange(0, salt.length, salt);
-      outBytes.setRange(salt.length, salt.length + nonce.length, nonce);
-      outBytes.setRange(salt.length + nonce.length, outBytes.length, encrypted);
+      outBytes.setRange(salt.length, salt.length + iv.length, iv);
+      outBytes.setRange(salt.length + iv.length, salt.length + iv.length + out.length, out);
+      outBytes.setRange(salt.length + iv.length + out.length, outBytes.length, hmacResult);
       outputFile.writeAsBytesSync(outBytes);
 
       return sha256Hash;
@@ -81,44 +93,60 @@ class CryptoEngine {
     }
   }
 
-  /// Decrypts encrypted file at [encryptedFilePath] with [password],
-  /// writes plaintext to [outputPath]. Returns true on success.
   bool decryptFile(String encryptedFilePath, String password, String outputPath) {
     try {
       final fileData = File(encryptedFilePath).readAsBytesSync();
-
-      if (fileData.length < _config.encryptionSaltBytes + 12 + 16) {
+      final minLen = _config.encryptionSaltBytes + _ivBytes + _hmacBytes;
+      if (fileData.length < minLen) {
         throw const DecryptionException('File too small or corrupted');
       }
 
-      // Parse: salt + nonce + encrypted(tag appended)
       final salt = fileData.sublist(0, _config.encryptionSaltBytes);
-      final nonce = fileData.sublist(_config.encryptionSaltBytes, _config.encryptionSaltBytes + 12);
-      final encrypted = fileData.sublist(_config.encryptionSaltBytes + 12);
+      final iv = fileData.sublist(_config.encryptionSaltBytes, _config.encryptionSaltBytes + _ivBytes);
+      final cipherLen = fileData.length - _config.encryptionSaltBytes - _ivBytes - _hmacBytes;
+      final ciphertext = fileData.sublist(_config.encryptionSaltBytes + _ivBytes, _config.encryptionSaltBytes + _ivBytes + cipherLen);
+      final storedHmac = fileData.sublist(_config.encryptionSaltBytes + _ivBytes + cipherLen);
 
-      // Derive key
-      final key = _deriveKey(password, salt);
+      final encKey = _deriveKey(password, salt);
+      final hmacKey = _deriveHmacKey(password, salt);
 
-      // AES-256-GCM decrypt
-      final cipher = GCMBlockCipher(AESEngine())
-        ..init(false, AEADParameters(KeyParameter(key), 128, nonce, Uint8List(0)));
+      final mac = HMac(SHA256Digest(), 64);
+      mac.init(KeyParameter(hmacKey));
+      mac.update(iv, 0, iv.length);
+      mac.update(ciphertext, 0, ciphertext.length);
+      final computedHmac = Uint8List(_hmacBytes);
+      mac.doFinal(computedHmac, 0);
 
-      final decrypted = Uint8List(cipher.getOutputSize(encrypted.length));
-      final len = cipher.processBytes(encrypted, 0, encrypted.length, decrypted, 0);
-      final finalLen = cipher.doFinal(decrypted, len);
+      if (!_constantTimeEquals(computedHmac, storedHmac)) {
+        throw const DecryptionException('Wrong password or corrupted file');
+      }
 
-      // GCM authenticates, so if we got here, integrity is verified
+      final cipher = SICBlockCipher(AESEngine())
+        ..init(false, ParametersWithIV(KeyParameter(encKey), iv));
+
+      final plaintext = Uint8List(ciphertext.length);
+      for (var i = 0; i < ciphertext.length; i++) {
+        plaintext[i] = cipher.returnByte(ciphertext[i]);
+      }
+
       _ensureDirectory(outputPath);
-      File(outputPath).writeAsBytesSync(decrypted.sublist(0, len + finalLen));
+      File(outputPath).writeAsBytesSync(plaintext);
       return true;
     } on FileSystemException {
       rethrow;
     } on DecryptionException {
       rethrow;
-    } on ArgumentError {
-      throw const DecryptionException('Wrong password or corrupted file');
     } catch (e) {
       throw CryptoException('Decryption failed: $e', cause: e);
     }
+  }
+
+  bool _constantTimeEquals(Uint8List a, Uint8List b) {
+    if (a.length != b.length) return false;
+    var result = 0;
+    for (var i = 0; i < a.length; i++) {
+      result |= a[i] ^ b[i];
+    }
+    return result == 0;
   }
 }
