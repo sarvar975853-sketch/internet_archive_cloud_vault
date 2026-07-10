@@ -58,9 +58,7 @@ jobs:
 
       - name: Set minimum macOS version to 10.15
         run: |
-          # Update Podfile deployment target
           sed -i '' 's/platform :osx, '.*'/platform :osx, '10.15'/' macos/Podfile
-          # Update Xcode project deployment target
           sed -i '' 's/MACOSX_DEPLOYMENT_TARGET = [0-9.]\{4,\}/MACOSX_DEPLOYMENT_TARGET = 10.15/g' macos/Runner.xcodeproj/project.pbxproj
           echo "=== macOS deployment target set to 10.15 ==="
           grep -n "DEPLOYMENT_TARGET\|platform :osx" macos/Podfile macos/Runner.xcodeproj/project.pbxproj 2>/dev/null || true
@@ -68,34 +66,44 @@ jobs:
       - name: Build macOS app
         run: flutter build macos --release
 
+      - name: Locate .app
+        id: find_app
+        run: |
+          APP_PATH=$(find build/macos/Build/Products/Release -name "*.app" -type d | head -1)
+          if [ -z "$APP_PATH" ]; then
+            echo "No .app found in build output"
+            ls -la build/macos/Build/Products/Release/ 2>/dev/null || true
+            exit 1
+          fi
+          echo "APP_PATH=$APP_PATH" >> "$GITHUB_ENV"
+          echo "Found app at: $APP_PATH"
+
       - name: Verify build
         run: |
-          ls -la build/macos/Build/Products/Release/
-          file build/macos/Build/Products/Release/Aegis\ Vault.app
+          file "$APP_PATH"
           echo "=== Minimum OS version ==="
-          plutil -p build/macos/Build/Products/Release/Aegis\ Vault.app/Contents/Info.plist | grep -i minimum || true
-          otool -l build/macos/Build/Products/Release/Aegis\ Vault.app/Contents/MacOS/Aegis\ Vault 2>/dev/null | grep -A2 LC_VERSION_MIN || true
+          plutil -p "$APP_PATH/Contents/Info.plist" | grep -i minimum || true
+          otool -l "$APP_PATH/Contents/MacOS/"* 2>/dev/null | grep -A2 LC_VERSION_MIN || true
 
       - name: Create DMG
         continue-on-error: true
         run: |
           brew install create-dmg
+          APP_BASENAME=$(basename "$APP_PATH")
           create-dmg \
             --volname "Aegis Vault" \
             --window-pos 200 120 \
             --window-size 600 450 \
             --icon-size 100 \
-            --icon "Aegis Vault.app" 175 120 \
-            --hide-extension "Aegis Vault.app" \
+            --icon "$APP_BASENAME" 175 120 \
+            --hide-extension "$APP_BASENAME" \
             --app-drop-link 425 120 \
             "Aegis_Vault_v3.5.5.dmg" \
-            "build/macos/Build/Products/Release/"
+            "$(dirname "$APP_PATH")"
 
       - name: Zip .app (fallback)
         run: |
-          ditto -c -k --sequesterRsrc --keepParent \
-            "build/macos/Build/Products/Release/Aegis Vault.app" \
-            "Aegis_Vault_v3.5.5.zip"
+          ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "Aegis_Vault_v3.5.5.zip"
 
       - name: Upload DMG
         uses: actions/upload-artifact@v4
