@@ -15,41 +15,11 @@ Uint8List _generateSecureBytes(int count) {
   return bytes;
 }
 
-void _incrementCounter(Uint8List counter) {
-  for (var i = counter.length - 1; i >= 0; i--) {
-    if (++counter[i] != 0) break;
-  }
-}
-
-Uint8List _ctrCrypt(Uint8List key, Uint8List iv, Uint8List data) {
-  final aes = AESEngine();
-  aes.init(true, KeyParameter(key));
-
-  final counter = Uint8List(iv.length);
-  counter.setRange(0, iv.length, iv);
-
-  final out = Uint8List(data.length);
-  final keystream = Uint8List(16);
-
-  for (var i = 0; i < data.length; i += 16) {
-    aes.processBlock(counter, 0, keystream, 0);
-    _incrementCounter(counter);
-    final remaining = data.length - i;
-    final chunkLen = remaining < 16 ? remaining : 16;
-    for (var j = 0; j < chunkLen; j++) {
-      out[i + j] = data[i + j] ^ keystream[j];
-    }
-  }
-  return out;
-}
-
 class CredentialManager {
   final AppConfig _config = AppConfig();
   String? _cachedAccessKey;
   String? _cachedSecretKey;
   bool _loaded = false;
-  static const int _ivBytes = 16;
-  static const int _hmacBytes = 32;
 
   Future<String> get _machineKeyPath => _config.keyFile;
   Future<String> get _credentialPath => _config.credentialFile;
@@ -74,46 +44,37 @@ class CredentialManager {
   }
 
   Future<Uint8List> _encryptWithKey(Uint8List key, String data) async {
-    final iv = _generateSecureBytes(_ivBytes);
+    final nonce = _generateSecureBytes(12);
+
     final plaintext = utf8.encode(data);
-    final out = _ctrCrypt(key, iv, Uint8List.fromList(plaintext));
+    final cipher = GCMBlockCipher(AESEngine())
+      ..init(true, AEADParameters(KeyParameter(key), 128, nonce, Uint8List(0)));
 
-    final mac = HMac(SHA256Digest(), 64);
-    mac.init(KeyParameter(key));
-    mac.update(iv, 0, iv.length);
-    mac.update(out, 0, out.length);
-    final hmacResult = Uint8List(_hmacBytes);
-    mac.doFinal(hmacResult, 0);
+    final encrypted = Uint8List(cipher.getOutputSize(plaintext.length));
+    final len = cipher.processBytes(plaintext, 0, plaintext.length, encrypted, 0);
+    cipher.doFinal(encrypted, len);
 
-    final result = Uint8List(iv.length + out.length + hmacResult.length);
-    result.setRange(0, iv.length, iv);
-    result.setRange(iv.length, iv.length + out.length, out);
-    result.setRange(iv.length + out.length, result.length, hmacResult);
+    final result = Uint8List(nonce.length + encrypted.length);
+    result.setRange(0, nonce.length, nonce);
+    result.setRange(nonce.length, result.length, encrypted);
     return result;
   }
 
   Future<String> _decryptWithKey(Uint8List key, Uint8List data) async {
-    if (data.length < _ivBytes + _hmacBytes) {
+    if (data.length < 12 + 16) {
       throw const CredentialException('Credential file corrupted');
     }
-    final iv = data.sublist(0, _ivBytes);
-    final ctLen = data.length - _ivBytes - _hmacBytes;
-    final ciphertext = data.sublist(_ivBytes, _ivBytes + ctLen);
-    final storedHmac = data.sublist(_ivBytes + ctLen);
+    final nonce = data.sublist(0, 12);
+    final encrypted = data.sublist(12);
 
-    final mac = HMac(SHA256Digest(), 64);
-    mac.init(KeyParameter(key));
-    mac.update(iv, 0, iv.length);
-    mac.update(ciphertext, 0, ciphertext.length);
-    final computedHmac = Uint8List(_hmacBytes);
-    mac.doFinal(computedHmac, 0);
+    final cipher = GCMBlockCipher(AESEngine())
+      ..init(false, AEADParameters(KeyParameter(key), 128, nonce, Uint8List(0)));
 
-    if (!_constantTimeEquals(computedHmac, storedHmac)) {
-      throw const CredentialException('Credential file corrupted');
-    }
+    final decrypted = Uint8List(cipher.getOutputSize(encrypted.length));
+    final len = cipher.processBytes(encrypted, 0, encrypted.length, decrypted, 0);
+    final finalLen = cipher.doFinal(decrypted, len);
 
-    final plaintext = _ctrCrypt(key, iv, ciphertext);
-    return utf8.decode(plaintext);
+    return utf8.decode(decrypted.sublist(0, len + finalLen));
   }
 
   Future<void> saveCredentials(String access, String secret) async {
@@ -190,14 +151,5 @@ class CredentialManager {
     } catch (e) {
       throw CredentialException('Failed to clear credentials: $e', cause: e);
     }
-  }
-
-  bool _constantTimeEquals(Uint8List a, Uint8List b) {
-    if (a.length != b.length) return false;
-    var result = 0;
-    for (var i = 0; i < a.length; i++) {
-      result |= a[i] ^ b[i];
-    }
-    return result == 0;
   }
 }
