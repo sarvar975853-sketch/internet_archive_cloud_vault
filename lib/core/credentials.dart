@@ -70,7 +70,7 @@ class CredentialManager {
   /// Decrypts data with machine key.
   Future<String> _decryptWithKey(Uint8List key, Uint8List data) async {
     if (data.length < 12 + 16) {
-      throw CredentialException('Credential file corrupted');
+      throw const CredentialException('Credential file corrupted');
     }
     final nonce = data.sublist(0, 12);
     final encrypted = data.sublist(12);

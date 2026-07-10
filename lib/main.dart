@@ -7,7 +7,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await windowManager.ensureInitialized();
   
-  WindowOptions windowOptions = const WindowOptions(
+  final windowOptions = const WindowOptions(
     size: Size(1280, 800),
     minimumSize: Size(1024, 680),
     center: true,
@@ -18,7 +18,7 @@ void main() async {
     await windowManager.focus();
   });
 
-  SystemChrome.setPreferredOrientations([
+  SystemChrome.setPreferredOrientations(const [
     DeviceOrientation.landscapeLeft,
     DeviceOrientation.landscapeRight,
   ]);

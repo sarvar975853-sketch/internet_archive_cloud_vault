@@ -63,7 +63,7 @@ class _FilesScreenState extends State<FilesScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
                 color: AppColors.primary.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.all(Radius.circular(8)),
               ),
               child: Text(widget.currentFolder!, style: const TextStyle(fontSize: 13, color: AppColors.primary)),
             ),
@@ -89,7 +89,7 @@ class _FilesScreenState extends State<FilesScreen> {
                     child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                       Icon(Icons.insert_drive_file, size: 64, color: AppColors.textMuted.withOpacity(0.3)),
                       const SizedBox(height: 16),
-                      Text('No files found', style: TextStyle(fontSize: 16, color: AppColors.textMuted)),
+                      const Text('No files found', style: TextStyle(fontSize: 16, color: AppColors.textMuted)),
                     ]),
                   )
                 : ListView.builder(
@@ -101,9 +101,9 @@ class _FilesScreenState extends State<FilesScreen> {
                       final size = file['size']?.toString() ?? '';
                       return Container(
                         margin: const EdgeInsets.only(bottom: 4),
-                        decoration: BoxDecoration(
+                        decoration: const BoxDecoration(
                           color: AppColors.cardBg,
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.all(Radius.circular(8)),
                           border: Border.all(color: AppColors.borderDefault),
                         ),
                         child: ListTile(

@@ -105,7 +105,7 @@ class _UrlUploadScreenState extends State<UrlUploadScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
             color: Color(int.parse(e.value['color']!.replaceAll('#', '0xFF'))).withOpacity(0.15),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: const BorderRadius.all(Radius.circular(16)),
             border: Border.all(color: Color(int.parse(e.value['color']!.replaceAll('#', '0xFF'))).withOpacity(0.3)),
           ),
           child: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -140,8 +140,8 @@ class _UrlUploadScreenState extends State<UrlUploadScreen> {
           const SizedBox(height: 8),
           Container(
             constraints: const BoxConstraints(maxHeight: 200),
-            decoration: BoxDecoration(
-              color: AppColors.cardBg, borderRadius: BorderRadius.circular(8),
+            decoration: const BoxDecoration(
+              color: AppColors.cardBg, borderRadius: BorderRadius.all(Radius.circular(8)),
               border: Border.all(color: AppColors.borderDefault),
             ),
             child: ListView.separated(
@@ -239,7 +239,7 @@ class _ModeChip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         decoration: BoxDecoration(
           color: selected ? AppColors.primary.withOpacity(0.15) : AppColors.cardBg,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: const BorderRadius.all(Radius.circular(8)),
           border: Border.all(color: selected ? AppColors.primary : AppColors.borderDefault),
         ),
         child: Text(label, style: TextStyle(

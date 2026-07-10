@@ -50,9 +50,9 @@ class DashboardScreen extends StatelessWidget {
           if (folderFileCounts.isEmpty)
             Container(
               padding: const EdgeInsets.all(32),
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: AppColors.cardBg,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.all(Radius.circular(12)),
                 border: Border.all(color: AppColors.borderDefault),
               ),
               child: Center(
@@ -89,11 +89,11 @@ class DashboardScreen extends StatelessWidget {
           const SizedBox(height: 12),
           Row(
             children: [
-              _ActionChip(icon: Icons.upload_file, label: 'Upload Files'),
+              const _ActionChip(icon: Icons.upload_file, label: 'Upload Files'),
               const SizedBox(width: 12),
-              _ActionChip(icon: Icons.link, label: 'URL Upload'),
+              const _ActionChip(icon: Icons.link, label: 'URL Upload'),
               const SizedBox(width: 12),
-              _ActionChip(icon: Icons.download, label: 'Browse Files'),
+              const _ActionChip(icon: Icons.download, label: 'Browse Files'),
             ],
           ),
         ],
@@ -113,9 +113,9 @@ class _StatCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: AppColors.cardBg,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.all(Radius.circular(12)),
         border: Border.all(color: AppColors.borderDefault),
       ),
       child: Column(
@@ -145,9 +145,9 @@ class _FolderCard extends StatelessWidget {
     return Container(
       width: 180,
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: AppColors.cardBg,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.all(Radius.circular(12)),
         border: Border.all(color: AppColors.borderDefault),
       ),
       child: Column(
@@ -155,7 +155,7 @@ class _FolderCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.folder, color: AppColors.primary, size: 20),
+              const Icon(Icons.folder, color: AppColors.primary, size: 20),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
@@ -182,7 +182,7 @@ class _EngineBadge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
         color: AppColors.cardBg,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: const BorderRadius.all(Radius.circular(8)),
         border: Border.all(color: available ? AppColors.success.withOpacity(0.3) : AppColors.error.withOpacity(0.3)),
       ),
       child: Row(

@@ -42,7 +42,7 @@ class ToastWidget extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
         decoration: BoxDecoration(
           color: AppColors.surfaceBg,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: const BorderRadius.all(Radius.circular(12)),
           border: Border.all(color: _color.withOpacity(0.5)),
           boxShadow: [
             BoxShadow(

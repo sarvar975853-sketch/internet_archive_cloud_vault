@@ -57,7 +57,7 @@ class _OmniFetchTabState extends State<OmniFetchTab> with SingleTickerProviderSt
       ToastManager.warning(context, 'Please enter a URL');
       return;
     }
-    final quality = _selectedQuality == 'Audio Only' ? 'audio' : _selectedQuality.replaceAll(RegExp(r'[^\d]'), '') + 'p';
+    final quality = _selectedQuality == 'Audio Only' ? 'audio' : '${_selectedQuality.replaceAll(RegExp(r'[^\d]'), '')}p';
     final format = _selectedQuality == 'Audio Only' ? (_selectedFormat == 'mp4' ? 'mp3' : _selectedFormat) : _selectedFormat;
 
     final task = OmniTask(
@@ -107,8 +107,8 @@ class _OmniFetchTabState extends State<OmniFetchTab> with SingleTickerProviderSt
         // URL card
         Container(
           padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: AppColors.cardBg, borderRadius: BorderRadius.circular(16),
+          decoration: const BoxDecoration(
+            color: AppColors.cardBg, borderRadius: BorderRadius.all(Radius.circular(16)),
             border: Border.all(color: AppColors.borderDefault),
           ),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -124,7 +124,7 @@ class _OmniFetchTabState extends State<OmniFetchTab> with SingleTickerProviderSt
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         decoration: BoxDecoration(
                           color: AppColors.primary.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: const BorderRadius.all(Radius.circular(8)),
                         ),
                         child: Center(child: Text(_detectedPlatform!, style: const TextStyle(fontSize: 11, color: AppColors.primary))),
                       )
@@ -211,18 +211,18 @@ class _OmniFetchTabState extends State<OmniFetchTab> with SingleTickerProviderSt
         const SizedBox(height: 24),
         _SettingRow(label: 'Download Directory', subtitle: _selectedDestination, trailing: const Icon(Icons.folder, color: AppColors.primary)),
         const Divider(height: 24, color: AppColors.borderDefault),
-        _SettingRow(label: 'Max Concurrent Downloads', subtitle: '3', trailing: const Text('3')),
+        const _SettingRow(label: 'Max Concurrent Downloads', subtitle: '3', trailing: Text('3')),
         const Divider(height: 24, color: AppColors.borderDefault),
-        _SettingRow(label: 'Aria2c Chunks', subtitle: '16 per file', trailing: const Text('16')),
+        const _SettingRow(label: 'Aria2c Chunks', subtitle: '16 per file', trailing: Text('16')),
         const Divider(height: 24, color: AppColors.borderDefault),
         Row(children: [
           const Text('Engine Status', style: TextStyle(fontSize: 14, color: AppColors.textPrimary)),
           const Spacer(),
-          _EngineDot(label: 'yt-dlp', available: true),
+          const _EngineDot(label: 'yt-dlp', available: true),
           const SizedBox(width: 16),
-          _EngineDot(label: 'FFmpeg', available: true),
+          const _EngineDot(label: 'FFmpeg', available: true),
           const SizedBox(width: 16),
-          _EngineDot(label: 'aria2c', available: false),
+          const _EngineDot(label: 'aria2c', available: false),
         ]),
       ]),
     );
@@ -242,9 +242,9 @@ class _NavItem extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       child: Material(
         color: isActive ? AppColors.sidebarItemActive : Colors.transparent,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: const BorderRadius.all(Radius.circular(8)),
         child: InkWell(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: const BorderRadius.all(Radius.circular(8)),
           onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -269,8 +269,8 @@ class _TaskEntry extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.cardBg, borderRadius: BorderRadius.circular(12),
+      decoration: const BoxDecoration(
+        color: AppColors.cardBg, borderRadius: BorderRadius.all(Radius.circular(12)),
         border: Border.all(color: AppColors.borderDefault),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -283,16 +283,16 @@ class _TaskEntry extends StatelessWidget {
         const SizedBox(height: 8),
         if (task.status == 'downloading') ...[
           ClipRRect(
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: const BorderRadius.all(Radius.circular(4)),
             child: LinearProgressIndicator(value: 0.45, minHeight: 4, backgroundColor: AppColors.progressBg, valueColor: const AlwaysStoppedAnimation(AppColors.progressFill)),
           ),
           const SizedBox(height: 6),
           Row(children: [
             const Text('45%', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
             const Spacer(),
-            Text('2.5 MB/s', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
+            const Text('2.5 MB/s', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
             const Spacer(),
-            Text('ETA 00:42', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
+            const Text('ETA 00:42', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
           ]),
         ] else if (task.status == 'completed') ...[
           Row(children: [
@@ -301,7 +301,7 @@ class _TaskEntry extends StatelessWidget {
             Text('${task.quality} | ${task.format}', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
           ]),
         ] else ...[
-          Text('Queued...', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+          const Text('Queued...', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
         ],
       ]),
     );

@@ -83,7 +83,7 @@ class CryptoEngine {
       final fileData = File(encryptedFilePath).readAsBytesSync();
 
       if (fileData.length < _config.encryptionSaltBytes + 12 + 16) {
-        throw DecryptionException('File too small or corrupted');
+        throw const DecryptionException('File too small or corrupted');
       }
 
       // Parse: salt + nonce + encrypted(tag appended)
@@ -111,7 +111,7 @@ class CryptoEngine {
     } on DecryptionException {
       rethrow;
     } on ArgumentError {
-      throw DecryptionException('Wrong password or corrupted file');
+      throw const DecryptionException('Wrong password or corrupted file');
     } catch (e) {
       throw CryptoException('Decryption failed: $e', cause: e);
     }

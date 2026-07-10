@@ -50,7 +50,7 @@ class _SidebarState extends State<Sidebar> {
             ),
             child: Row(
               children: [
-                Icon(Icons.shield, color: AppColors.primary, size: 28),
+                const Icon(Icons.shield, color: AppColors.primary, size: 28),
                 const SizedBox(width: 12),
                 Text('Aegis Vault',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 18)),
@@ -121,7 +121,7 @@ class _SidebarState extends State<Sidebar> {
             ),
           ),
           // Storage donut chart
-          _StorageDonut(used: 60, total: 100),
+          const _StorageDonut(used: 60, total: 100),
           const SizedBox(height: 8),
           // Security indicator
           Padding(
@@ -187,9 +187,9 @@ class _FolderItem extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 1),
       child: Material(
         color: isActive ? AppColors.sidebarItemActive : Colors.transparent,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: const BorderRadius.all(Radius.circular(8)),
         child: InkWell(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: const BorderRadius.all(Radius.circular(8)),
           onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -224,7 +224,7 @@ class _IconButton extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: const BorderRadius.all(Radius.circular(6)),
         onTap: onPressed,
         child: Padding(
           padding: const EdgeInsets.all(4),

@@ -38,7 +38,7 @@ class _UploadScreenState extends State<UploadScreen> {
 
   void _pickFiles() async {
     final result = await FilePicker.platform.pickFiles(allowMultiple: true);
-    if (result != null) {
+    if (result != null && mounted) {
       setState(() {
         for (final file in result.files) {
           if (file.path != null) {
@@ -117,7 +117,7 @@ class _UploadScreenState extends State<UploadScreen> {
               height: 160,
               decoration: BoxDecoration(
                 color: _isDragging ? AppColors.primary.withOpacity(0.05) : AppColors.cardBg,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.all(Radius.circular(16)),
                 border: Border.all(
                   color: _isDragging ? AppColors.primary : AppColors.borderDefault,
                   width: _isDragging ? 2 : 1,
@@ -129,7 +129,7 @@ class _UploadScreenState extends State<UploadScreen> {
                   children: [
                     Icon(Icons.cloud_upload, size: 48, color: _isDragging ? AppColors.primary : AppColors.textMuted),
                     const SizedBox(height: 12),
-                    Text('Drop files here or', style: TextStyle(fontSize: 15, color: AppColors.textSecondary)),
+                    const Text('Drop files here or', style: TextStyle(fontSize: 15, color: AppColors.textSecondary)),
                     const SizedBox(height: 8),
                     ElevatedButton.icon(
                       onPressed: _pickFiles,
@@ -150,8 +150,8 @@ class _UploadScreenState extends State<UploadScreen> {
             const SizedBox(height: 8),
             Container(
               constraints: const BoxConstraints(maxHeight: 200),
-              decoration: BoxDecoration(
-                color: AppColors.cardBg, borderRadius: BorderRadius.circular(8),
+              decoration: const BoxDecoration(
+                color: AppColors.cardBg, borderRadius: BorderRadius.all(Radius.circular(8)),
                 border: Border.all(color: AppColors.borderDefault),
               ),
               child: ListView.separated(

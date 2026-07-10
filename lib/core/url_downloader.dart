@@ -163,7 +163,7 @@ class URLDownloader {
   Future<Map<String, dynamic>> _downloadDropbox(String url, void Function(int, int)? cb) async {
     var dlUrl = url.replaceAll('?dl=0', '?dl=1');
     if (!dlUrl.contains('?dl=1') && !url.contains('?dl=0')) {
-      dlUrl = url.endsWith('/') ? '${url}?dl=1' : '$url?dl=1';
+      dlUrl = url.endsWith('/') ? '$url?dl=1' : '$url?dl=1';
     }
     return _streamToFile(Uri.parse(dlUrl), cb);
   }

@@ -78,7 +78,7 @@ class _HoverWrapperState extends State<HoverWrapper> {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: const BorderRadius.all(Radius.circular(8)),
           color: _isHovered ? AppColors.sidebarItemHover : Colors.transparent,
         ),
         child: widget.child,

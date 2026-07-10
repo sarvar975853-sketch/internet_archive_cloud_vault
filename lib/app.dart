@@ -259,7 +259,7 @@ class _AegisVaultHomeState extends State<AegisVaultHome> {
                 const Spacer(),
                 IconButton(
                   icon: const Icon(Icons.settings_outlined, size: 20),
-                  onPressed: () => showDialog(
+                  onPressed: () => showDialog<void>(
                     context: context,
                     builder: (context) => const SettingsScreen(),
                   ),
@@ -312,7 +312,7 @@ class _AegisVaultHomeState extends State<AegisVaultHome> {
 
   void _showCreateFolderDialog(AppState state) {
     final controller = TextEditingController();
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.cardBg,
@@ -332,10 +332,12 @@ class _AegisVaultHomeState extends State<AegisVaultHome> {
                 try {
                   await state.storageEngine?.createFolder(controller.text);
                   await state.startSession('', ''); // Refresh
-                  if (context.mounted) Navigator.pop(context);
-                  ToastManager.success(context, 'Folder created');
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                    ToastManager.success(context, 'Folder created');
+                  }
                 } catch (e) {
-                  ToastManager.error(context, 'Failed: $e');
+                  if (context.mounted) ToastManager.error(context, 'Failed: $e');
                 }
               }
             },
@@ -366,9 +368,9 @@ class _NavPill extends StatelessWidget {
       padding: const EdgeInsets.only(right: 8),
       child: Material(
         color: isActive ? AppColors.primary.withOpacity(0.15) : Colors.transparent,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: const BorderRadius.all(Radius.circular(8)),
         child: InkWell(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: const BorderRadius.all(Radius.circular(8)),
           onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -381,11 +383,11 @@ class _NavPill extends StatelessWidget {
               const SizedBox(width: 6),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   color: AppColors.surfaceBg,
-                  borderRadius: BorderRadius.circular(4),
+                  borderRadius: BorderRadius.all(Radius.circular(4)),
                 ),
-                child: Text(shortcut, style: TextStyle(fontSize: 10, color: AppColors.textMuted)),
+                child: Text(shortcut, style: const TextStyle(fontSize: 10, color: AppColors.textMuted)),
               ),
             ]),
           ),

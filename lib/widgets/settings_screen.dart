@@ -32,9 +32,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       child: Container(
         width: 520,
         height: 480,
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           color: AppColors.cardBg,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.all(Radius.circular(16)),
           border: Border.all(color: AppColors.borderDefault),
         ),
         child: Column(children: [
@@ -85,22 +85,22 @@ class _GeneralTab extends StatelessWidget {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('Performance', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 12),
-        _SettingRow(
+        const _SettingRow(
           label: 'Max Download Threads',
           subtitle: '16 parallel chunks per download',
-          trailing: const Text('16', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600)),
+          trailing: Text('16', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600)),
         ),
         const Divider(height: 24, color: AppColors.borderDefault),
-        _SettingRow(
+        const _SettingRow(
           label: 'Queue Workers',
           subtitle: '6 concurrent upload/download tasks',
-          trailing: const Text('6', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600)),
+          trailing: Text('6', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600)),
         ),
         const Divider(height: 24, color: AppColors.borderDefault),
-        _SettingRow(
+        const _SettingRow(
           label: 'Task Timeout',
           subtitle: '300 seconds per task',
-          trailing: const Text('300s', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600)),
+          trailing: Text('300s', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600)),
         ),
         const SizedBox(height: 32),
         Text('Storage', style: Theme.of(context).textTheme.titleMedium),
@@ -118,16 +118,16 @@ class _GeneralTab extends StatelessWidget {
         const SizedBox(height: 32),
         Text('Security', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 12),
-        _SettingRow(
+        const _SettingRow(
           label: 'PBKDF2 Iterations',
           subtitle: '600,000 iterations (OWASP 2024)',
-          trailing: const Icon(Icons.check_circle, color: AppColors.success, size: 20),
+          trailing: Icon(Icons.check_circle, color: AppColors.success, size: 20),
         ),
         const Divider(height: 24, color: AppColors.borderDefault),
-        _SettingRow(
+        const _SettingRow(
           label: 'Encryption',
           subtitle: 'AES-256-GCM with SHA-256 integrity',
-          trailing: const Icon(Icons.check_circle, color: AppColors.success, size: 20),
+          trailing: Icon(Icons.check_circle, color: AppColors.success, size: 20),
         ),
       ]),
     );
@@ -141,7 +141,7 @@ class _AboutTab extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       child: Column(children: [
         const SizedBox(height: 24),
-        Icon(Icons.shield, size: 64, color: AppColors.primary),
+        const Icon(Icons.shield, size: 64, color: AppColors.primary),
         const SizedBox(height: 16),
         Text(AppVersion.appName, style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontSize: 28)),
         const SizedBox(height: 8),
@@ -149,7 +149,7 @@ class _AboutTab extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
           decoration: BoxDecoration(
             color: AppColors.primary.withOpacity(0.15),
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: const BorderRadius.all(Radius.circular(20)),
           ),
           child: Text('v${AppVersion.version}',
               style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600)),
@@ -158,15 +158,15 @@ class _AboutTab extends StatelessWidget {
         Text(AppVersion.description, textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodyMedium),
         const SizedBox(height: 32),
-        _AboutRow(label: 'Author', value: AppVersion.author),
+        const _AboutRow(label: 'Author', value: AppVersion.author),
         const SizedBox(height: 12),
-        _AboutRow(label: 'Build Date', value: AppVersion.buildDate),
+        const _AboutRow(label: 'Build Date', value: AppVersion.buildDate),
         const SizedBox(height: 12),
-        _AboutRow(label: 'Backend', value: 'Internet Archive (S3 API)'),
+        const _AboutRow(label: 'Backend', value: 'Internet Archive (S3 API)'),
         const SizedBox(height: 12),
-        _AboutRow(label: 'Encryption', value: 'AES-256-GCM + PBKDF2-SHA256'),
+        const _AboutRow(label: 'Encryption', value: 'AES-256-GCM + PBKDF2-SHA256'),
         const SizedBox(height: 12),
-        _AboutRow(label: 'License', value: 'Apache 2.0'),
+        const _AboutRow(label: 'License', value: 'Apache 2.0'),
         const SizedBox(height: 32),
         Text('Built with Flutter • https://aegisvault.app',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 11)),

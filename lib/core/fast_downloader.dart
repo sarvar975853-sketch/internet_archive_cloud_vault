@@ -64,10 +64,6 @@ class FastDownloader {
       }),
     );
 
-    var totalDownloaded = 0;
-    for (final chunk in results) {
-      totalDownloaded += chunk;
-    }
     progressCallback?.call(totalSize, totalSize);
 
     return {'success': true, 'path': savePath, 'size': totalSize};

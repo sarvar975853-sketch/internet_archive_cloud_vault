@@ -53,7 +53,7 @@ class _LoginScreenState extends State<LoginScreen> {
       await _credentialManager.saveCredentials(access, secret);
       widget.onLogin(access, secret);
     } catch (e) {
-      setState(() => _error = 'Failed to save credentials: $e');
+      if (mounted) setState(() => _error = 'Failed to save credentials: $e');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -73,9 +73,9 @@ class _LoginScreenState extends State<LoginScreen> {
       body: Center(
         child: Container(
           constraints: const BoxConstraints(maxWidth: 1000, maxHeight: 680),
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             color: AppColors.cardBg,
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.all(Radius.circular(24)),
             border: Border.all(color: AppColors.borderDefault),
           ),
           child: Row(
@@ -84,13 +84,13 @@ class _LoginScreenState extends State<LoginScreen> {
               Expanded(
                 flex: 5,
                 child: Container(
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     gradient: LinearGradient(
                       colors: [AppColors.cardBg, AppColors.mainBg],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
-                    borderRadius: const BorderRadius.horizontal(left: Radius.circular(24)),
+                    borderRadius: BorderRadius.horizontal(left: Radius.circular(24)),
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -116,9 +116,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       Wrap(
                         spacing: 16, runSpacing: 12,
                         children: [
-                          _FeatureBadge(icon: Icons.lock, label: 'AES-256-GCM Encryption'),
-                          _FeatureBadge(icon: Icons.cloud_done, label: 'Internet Archive Backing'),
-                          _FeatureBadge(icon: Icons.download, label: 'Multi-Threaded Downloads'),
+                          const _FeatureBadge(icon: Icons.lock, label: 'AES-256-GCM Encryption'),
+                          const _FeatureBadge(icon: Icons.cloud_done, label: 'Internet Archive Backing'),
+                          const _FeatureBadge(icon: Icons.download, label: 'Multi-Threaded Downloads'),
                         ],
                       ),
                     ],
@@ -218,9 +218,9 @@ class _FeatureBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: AppColors.surfaceBg,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.all(Radius.circular(20)),
         border: Border.all(color: AppColors.borderDefault),
       ),
       child: Row(

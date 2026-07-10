@@ -89,7 +89,7 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
                 color: AppColors.primary.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.all(Radius.circular(8)),
               ),
               child: Text(widget.currentFolder!, style: const TextStyle(fontSize: 13, color: AppColors.primary)),
             ),
@@ -107,8 +107,8 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
             const SizedBox(width: 16),
             TextButton.icon(
               onPressed: () => setState(() => _showPasswordPrompt = !_showPasswordPrompt),
-              icon: Icon(Icons.download, size: 18),
-              label: Text('Download'),
+              icon: const Icon(Icons.download, size: 18),
+              label: const Text('Download'),
             ),
             const SizedBox(width: 8),
             TextButton.icon(
@@ -125,9 +125,9 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
         Container(
           margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             color: AppColors.surfaceBg,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.all(Radius.circular(8)),
             border: Border.all(color: AppColors.borderDefault),
           ),
           child: Column(children: [
@@ -171,7 +171,7 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
                     child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                       Icon(Icons.folder_open, size: 64, color: AppColors.textMuted.withOpacity(0.3)),
                       const SizedBox(height: 16),
-                      Text('No encrypted files found', style: TextStyle(fontSize: 16, color: AppColors.textMuted)),
+                      const Text('No encrypted files found', style: TextStyle(fontSize: 16, color: AppColors.textMuted)),
                     ]),
                   )
                 : ListView.builder(
@@ -186,7 +186,7 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
                         margin: const EdgeInsets.only(bottom: 4),
                         decoration: BoxDecoration(
                           color: isSelected ? AppColors.primary.withOpacity(0.05) : AppColors.cardBg,
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.all(Radius.circular(8)),
                           border: Border.all(color: isSelected ? AppColors.primary.withOpacity(0.3) : AppColors.borderDefault),
                         ),
                         child: ListTile(
