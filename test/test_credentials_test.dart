@@ -1,24 +1,44 @@
+import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:aegis_vault/core/credentials.dart';
-import 'dart:io';
+import 'package:aegis_vault/core/config.dart';
+import 'package:path/path.dart' as p;
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   late CredentialManager manager;
   late String tempDir;
 
-  setUp(() {
+  setUp(() async {
     tempDir = Directory.systemTemp.path + '/aegis_cred_test_${DateTime.now().millisecondsSinceEpoch}';
     Directory(tempDir).createSync();
     manager = CredentialManager();
+    // Clean up any credential files from previous tests
+    await _cleanConfigDir();
   });
 
-  tearDown(() {
+  tearDown(() async {
     if (Directory(tempDir).existsSync()) {
       Directory(tempDir).listSync(recursive: true).forEach((f) => (f as File).deleteSync());
       Directory(tempDir).deleteSync();
     }
+    await _cleanConfigDir();
   });
+
+  Future<void> _cleanConfigDir() async {
+    final config = AppConfig();
+    final dir = await config.configDir;
+    final keyFile = File(p.join(dir, '.aegis_sys.key'));
+    final credFile = File(p.join(dir, '.aegis_config.enc'));
+    for (final f in [keyFile, credFile]) {
+      if (await f.exists()) {
+        final len = await f.length();
+        if (len > 0) await f.writeAsBytes(Uint8List(len));
+        await f.delete();
+      }
+    }
+  }
 
   test('save and load credentials', () async {
     await manager.saveCredentials('test_access', 'test_secret');
