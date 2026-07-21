@@ -1,6 +1,6 @@
 class AppVersion {
-  static const String version = '3.5.5';
-  static const String buildDate = '2026-07-09';
+  static const String version = '3.5.0';
+  static const String buildDate = '2026-07-21';
   static const String author = 'Samar';
   static const String appName = 'Aegis Vault';
   static const String description =

@@ -1,8 +1,9 @@
-name: Build macOS Aegis Vault
+name: Build & Release macOS Aegis Vault
 
 on:
   push:
     branches: [main]
+    tags: ['v*']
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -98,23 +99,85 @@ jobs:
             --icon "$APP_BASENAME" 175 120 \
             --hide-extension "$APP_BASENAME" \
             --app-drop-link 425 120 \
-            "Aegis_Vault_v3.5.5.dmg" \
+            "Aegis_Vault_v3.5.0.dmg" \
             "$(dirname "$APP_PATH")"
 
       - name: Zip .app (fallback)
         run: |
-          ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "Aegis_Vault_v3.5.5.zip"
+          ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "Aegis_Vault_v3.5.0.zip"
 
       - name: Upload DMG
         uses: actions/upload-artifact@v4
         with:
           name: aegis-vault-macos-dmg
-          path: Aegis_Vault_v3.5.5.dmg
+          path: Aegis_Vault_v3.5.0.dmg
           retention-days: 30
 
       - name: Upload ZIP
         uses: actions/upload-artifact@v4
         with:
           name: aegis-vault-macos-zip
-          path: Aegis_Vault_v3.5.5.zip
+          path: Aegis_Vault_v3.5.0.zip
           retention-days: 30
+
+      - name: Upload build artifacts for release
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-assets
+          path: |
+            Aegis_Vault_v3.5.0.dmg
+            Aegis_Vault_v3.5.0.zip
+          retention-days: 1
+
+  release:
+    needs: build-macos
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download release assets
+        uses: actions/download-artifact@v4
+        with:
+          name: release-assets
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Aegis Vault ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          generate_release_notes: false
+          files: |
+            Aegis_Vault_v3.5.0.dmg
+            Aegis_Vault_v3.5.0.zip
+          body: |
+            ## Aegis Vault ${{ github.ref_name }}
+
+            Modern cloud storage desktop app with zero-knowledge encryption, built on Internet Archive.
+
+            ### What's New
+            - Migrated from Python/Tkinter to **Flutter/Dart** for native performance
+            - AES-256-CTR+HMAC encryption for credentials and file data
+            - Background folder discovery with live UI updates
+            - Parallel file uploads and downloads
+            - Create Folder support directly from the sidebar
+
+            ### System Requirements
+            - **macOS 10.15 (Catalina)** or later
+            - Internet Archive account with S3 credentials
+
+            ### Installation
+            1. Download `Aegis_Vault_v3.5.0.dmg` (recommended) or `.zip` below
+            2. Open the DMG and drag **Aegis Vault** to Applications
+            3. Launch from Applications or Spotlight
+
+            ### Verify Download
+            ```bash
+            shasum -a 256 Aegis_Vault_v3.5.0.dmg
+            ```

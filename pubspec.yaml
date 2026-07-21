@@ -1,6 +1,6 @@
 name: aegis_vault
 description: "Modern Cloud Storage with Zero-Knowledge Encryption"
-version: 3.5.5
+version: 3.5.0
 publish_to: 'none'
 
 environment:
