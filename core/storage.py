@@ -557,15 +557,26 @@ class IAStorageEngine:
         """
         Delete a file from an IA bucket via S3 API.
         If encrypted=True, appends .enc to the filename before deleting.
+        Uses internetarchive library for proper AWS Signature V2 auth.
         """
         actual_name = filename + ".enc" if encrypted else filename
         logger.info(f"Deleting {actual_name} from {bucket_id}")
 
-        url = f"https://s3.us.archive.org/{bucket_id}/{actual_name}"
-        response = requests.delete(url, auth=(self.access_key, self.secret_key), timeout=30)
-
-        if response.status_code in (200, 204):
-            logger.info(f"✓ Deleted {actual_name} from {bucket_id}")
-            return True
-        else:
-            raise Exception(f"Delete failed: HTTP {response.status_code} — {response.text[:200]}")
+        try:
+            session = ia.get_session(config={
+                's3': {
+                    'access': self.access_key,
+                    'secret': self.secret_key,
+                }
+            })
+            item = session.get_item(bucket_id)
+            resp = item.delete_file(actual_name)
+            if resp and resp.status_code in (200, 204):
+                logger.info(f"✓ Deleted {actual_name} from {bucket_id}")
+                return True
+            else:
+                status = resp.status_code if resp else "unknown"
+                raise Exception(f"Delete failed: HTTP {status}")
+        except Exception as e:
+            logger.error(f"Delete failed for {actual_name}: {e}")
+            raise
