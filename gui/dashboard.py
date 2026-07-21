@@ -25,7 +25,6 @@ class DashboardFrame(ctk.CTkFrame):
         self.on_navigate = on_navigate
         self.storage_engine = storage_engine
         self._stat_vars = {}
-        self._engine_labels = {}
         self.build_ui()
         self.after(300, self._load_stats_background)
 
@@ -45,7 +44,7 @@ class DashboardFrame(ctk.CTkFrame):
         banner_content = ctk.CTkFrame(banner, fg_color="transparent")
         banner_content.pack(fill="x", padx=22, pady=18)
 
-        ctk.CTkLabel(banner_content, text="Aegis Vault v3.5.5",
+        ctk.CTkLabel(banner_content, text="Aegis Vault",
                      font=ctk.CTkFont(size=20, weight="bold"),
                      text_color=COLOR_TEXT_MAIN).pack(anchor="w")
         ctk.CTkLabel(banner_content,
@@ -59,7 +58,6 @@ class DashboardFrame(ctk.CTkFrame):
             ("AES-256 Encryption", THEME['glass_overlay'], THEME['primary']),
             ("Zero-Knowledge", THEME['glass_overlay'], THEME['secondary']),
             ("6 Concurrent Workers", THEME['glass_overlay'], THEME['success']),
-            ("12+ Cloud Providers", THEME['glass_overlay'], THEME['warning']),
         ]
         for text, bg, fg in features:
             tag = ctk.CTkLabel(tags_frame, text=text,
@@ -76,7 +74,6 @@ class DashboardFrame(ctk.CTkFrame):
             ("FOLDERS", "folders", "—", "Scanning...", "📁", THEME['primary']),
             ("FILES",   "files",   "—", "Encrypted",   "📄", THEME['success']),
             ("STORAGE", "storage", "—", "Total used",  "💾", THEME['secondary']),
-            ("VAULT",   "vault",   "Active", "All systems", "🛡", THEME['success']),
         ]
 
         for col, (header, key, default_val, default_sub, icon, icon_color) in enumerate(stat_defs):
@@ -145,39 +142,7 @@ class DashboardFrame(ctk.CTkFrame):
         right_col = ctk.CTkFrame(two_col, fg_color="transparent")
         right_col.grid(row=0, column=1, sticky="nsew")
 
-        engine_card = ctk.CTkFrame(right_col, fg_color=COLOR_CARD_BG,
-                                    corner_radius=12, border_width=1,
-                                    border_color=COLOR_CARD_BORDER)
-        engine_card.pack(fill="x", pady=(0, 8))
 
-        ctk.CTkLabel(engine_card, text="⚡ Download Engines",
-                     font=ctk.CTkFont(size=13, weight="bold"),
-                     text_color=COLOR_TEXT_MAIN).pack(anchor="w", padx=16, pady=(12, 8))
-
-        engines = [
-            ("yt-dlp", "Media extraction"),
-            ("FFmpeg", "Transcoding / muxing"),
-            ("aria2c", "Multi-threaded acceleration"),
-        ]
-        for name, desc in engines:
-            row = ctk.CTkFrame(engine_card, fg_color="transparent")
-            row.pack(fill="x", padx=16, pady=3)
-
-            status_lbl = ctk.CTkLabel(row, text="●", font=ctk.CTkFont(size=10),
-                                      text_color=COLOR_TEXT_DIM)
-            status_lbl.pack(side="left")
-            self._engine_labels[name] = status_lbl
-
-            info = ctk.CTkFrame(row, fg_color="transparent")
-            info.pack(side="left", fill="x", expand=True, padx=(6, 0))
-            ctk.CTkLabel(info, text=name,
-                         font=ctk.CTkFont(size=11, weight="bold"),
-                         text_color=COLOR_TEXT_MAIN).pack(anchor="w")
-            ctk.CTkLabel(info, text=desc,
-                         font=ctk.CTkFont(size=9),
-                         text_color=COLOR_TEXT_SUB).pack(anchor="w")
-
-        ctk.CTkFrame(engine_card, height=8, fg_color="transparent").pack()
 
         qa_card = ctk.CTkFrame(right_col, fg_color=COLOR_CARD_BG,
                                 corner_radius=12, border_width=1,
@@ -246,37 +211,19 @@ class DashboardFrame(ctk.CTkFrame):
 
     def _load_stats_background(self):
         if not self.storage_engine:
-            self._check_engines()
             return
 
         def load():
             try:
-                # Use cached folder list if available (avoid re-scanning)
                 folders = self.storage_engine.scan_user_folders()
                 if not folders:
-                    self.after(0, self._check_engines)
                     return
 
-                all_files = self.storage_engine.get_files_parallel(folders, max_workers=16)
-
-                total_files = 0
-                total_size = 0
-                folder_details = []
-
-                for folder in folders:
-                    files = all_files.get(folder, [])
-                    total_files += len(files)
-                    for f in files:
-                        try:
-                            total_size += int(f.get("size_bytes", 0))
-                        except (ValueError, TypeError):
-                            pass
-                    folder_details.append((folder, len(files)))
+                folder_details = [(f, "—") for f in folders]
 
                 try:
                     self.after(0, lambda: self._update_stats(
-                        len(folders), total_files, total_size, folder_details))
-                    self.after(0, self._check_engines)
+                        len(folders), "—", "—", folder_details))
                 except Exception:
                     pass
             except Exception as e:
@@ -288,19 +235,23 @@ class DashboardFrame(ctk.CTkFrame):
         folders_var, folders_sub = self._stat_vars["folders"]
         files_var, files_sub = self._stat_vars["files"]
         storage_var, storage_sub = self._stat_vars["storage"]
-        vault_var, vault_sub = self._stat_vars["vault"]
 
         folders_var.set(str(folder_count))
         folders_sub.set(f"{folder_count} folder{'s' if folder_count != 1 else ''} in vault")
 
         files_var.set(str(file_count))
-        files_sub.set(f"{file_count} encrypted file{'s' if file_count != 1 else ''}")
+        if isinstance(file_count, int):
+            files_sub.set(f"{file_count} encrypted file{'s' if file_count != 1 else ''}")
+        else:
+            files_sub.set("Click Explorer to browse")
 
-        storage_var.set(self._fmt_size(total_bytes))
+        if isinstance(total_bytes, int):
+            storage_var.set(self._fmt_size(total_bytes))
+        else:
+            storage_var.set("—")
         storage_sub.set(f"Across {folder_count} folders")
 
-        vault_var.set("Active")
-        vault_sub.set("All systems operational")
+
 
         if self._folder_loading.winfo_exists():
             self._folder_loading.destroy()
@@ -320,30 +271,6 @@ class DashboardFrame(ctk.CTkFrame):
             ctk.CTkLabel(row, text=f"{folder_files} file{'s' if folder_files != 1 else ''}",
                          font=ctk.CTkFont(size=9),
                          text_color=COLOR_TEXT_SUB).pack(side="right")
-
-    def _check_engines(self):
-        engines = {"yt-dlp": False, "FFmpeg": False, "aria2c": False}
-
-        import shutil
-        if shutil.which("yt-dlp"):
-            engines["yt-dlp"] = True
-        else:
-            try:
-                import yt_dlp
-                engines["yt-dlp"] = True
-            except ImportError:
-                pass
-
-        if shutil.which("ffmpeg"):
-            engines["FFmpeg"] = True
-
-        if shutil.which("aria2c"):
-            engines["aria2c"] = True
-
-        for name, available in engines.items():
-            lbl = self._engine_labels.get(name)
-            if lbl:
-                lbl.configure(text_color=COLOR_SUCCESS if available else COLOR_ERROR)
 
     @staticmethod
     def _fmt_size(size_bytes):

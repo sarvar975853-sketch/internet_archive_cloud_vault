@@ -344,10 +344,10 @@ class ExplorerFrame(ctk.CTkFrame):
             return
         self.status_lbl.configure(text=f"Deleting {filename}...")
         self.queue_worker.submit_task(
-            self._process_delete, self.active_folder, filename
+            self._process_delete_encrypted, self.active_folder, filename
         )
 
-    def _process_delete(self, bucket, filename):
+    def _process_delete_encrypted(self, bucket, filename):
         self.storage.delete_file(bucket, filename, encrypted=True)
         return {"action": "file_deleted", "filename": filename}
 

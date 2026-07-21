@@ -56,7 +56,7 @@ class StorageDonut(ctk.CTkCanvas):
         cx, cy = s / 2, s / 2
         self.create_text(cx, cy - 7, text=f"{pct:.0f}%",
                          fill=THEME['text_main'], font=("Helvetica", 12, "bold"))
-        self.create_text(cx, cy + 8, text="of 10 TB",
+        self.create_text(cx, cy + 8, text="used",
                          fill=THEME['section_header'], font=("Helvetica", 7))
 
 
@@ -90,8 +90,6 @@ class SidebarFrame(ctk.CTkFrame):
         version_row.pack(fill="x")
         ctk.CTkLabel(version_row, text="● Aegis v3.5.0",
                      font=ctk.CTkFont(size=9), text_color=THEME['accent_indigo']).pack(side="left")
-        ctk.CTkLabel(version_row, text="● All systems operational",
-                     font=ctk.CTkFont(size=9), text_color=THEME['success']).pack(side="right")
 
         support_btn = ctk.CTkButton(
             footer,
@@ -246,9 +244,6 @@ class SidebarFrame(ctk.CTkFrame):
         self.used_lbl = ctk.CTkLabel(usage_row, text="0 B  Used",
                                       font=ctk.CTkFont(size=10), text_color=THEME['section_header'])
         self.used_lbl.pack(side="left")
-        self.total_lbl = ctk.CTkLabel(usage_row, text="10 TB  Total",
-                                       font=ctk.CTkFont(size=10), text_color=THEME['section_header'])
-        self.total_lbl.pack(side="right")
 
     def _security_row(self, icon, label, value, value_color):
         row = ctk.CTkFrame(self, fg_color="transparent")

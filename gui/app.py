@@ -33,7 +33,7 @@ class AppGUI(DnDWindow):
 
         ctk.set_appearance_mode("dark")
 
-        self.title("Aegis Vault v3.5.5 – Modern Cloud Vault")
+        self.title("Aegis Vault")
         self.geometry("1100x740")
         self.minsize(960, 640)
 
@@ -212,9 +212,9 @@ class AppGUI(DnDWindow):
         elif task_name == "_process_url_upload":
             self.url_upload_tab.on_task_update(status, result)
         elif task_name in ("_fetch_metadata", "_download_encrypted",
-                           "_download_encrypted_diff", "_process_delete"):
+                           "_download_encrypted_diff", "_process_delete_encrypted"):
             self.explorer_tab.on_task_update(status, result)
-        elif task_name in ("_fetch_files", "_download_plain", "_process_delete"):
+        elif task_name in ("_fetch_files", "_download_plain", "_process_delete_unencrypted"):
             self.files_tab.on_task_update(status, result)
 
     def on_folder_selected(self, folder_name):

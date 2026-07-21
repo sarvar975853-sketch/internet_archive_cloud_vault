@@ -16,14 +16,12 @@ VERSION_INFO = {
     "author": __author__,
     "country": __country__,
     "description": __description__,
-    "release_date": "2024-06-06",
+    "release_date": "2026-07-21",
     "features": [
-        "Multi-threaded uploads/downloads (6 concurrent workers)",
-        "12+ cloud provider support",
-        "Enhanced folder discovery",
-        "AES-256 encryption",
-        "Zero-knowledge architecture",
-        "Modern UI with drag & drop",
+        "AES-256 client-side encryption",
+        "Internet Archive cloud storage",
+        "Multi-threaded uploads and downloads",
+        "Folder discovery from archive.org",
     ]
 }
 
