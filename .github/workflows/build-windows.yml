@@ -1,0 +1,80 @@
+name: Build for Windows
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        python-version: ["3.9"]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          path: aegis_vault
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: "pip"
+          cache-dependency-path: aegis_vault/requirements.txt
+
+      - name: Install dependencies
+        working-directory: aegis_vault
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Install Inno Setup
+        run: choco install innosetup -y
+        shell: cmd
+
+      - name: Create Windows icon from PNG
+        working-directory: aegis_vault
+        run: |
+          python -c "
+          from PIL import Image
+          img = Image.open('assets/icon.png')
+          img = img.resize((256, 256), Image.LANCZOS)
+          img.save('assets/icon.ico', format='ICO', sizes=[(16,16),(32,32),(48,48),(64,64),(128,128),(256,256)])
+          print('icon.ico created successfully')
+          "
+
+      - name: Build with PyInstaller
+        working-directory: aegis_vault
+        run: |
+          pyinstaller AegisVault_Windows.spec --noconfirm
+
+      - name: Build installer with Inno Setup
+        working-directory: aegis_vault
+        run: |
+          "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
+        shell: cmd
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: AegisVault-Windows-Installer
+          path: aegis_vault/installer_output/AegisVault_Setup_*.exe
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Upload folder build
+        uses: actions/upload-artifact@v4
+        with:
+          name: AegisVault-Windows-Folder
+          path: aegis_vault/dist/AegisVault/
+          retention-days: 30
+          if-no-files-found: error

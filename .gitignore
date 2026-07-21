@@ -1,16 +1,33 @@
-# Flutter
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+dist/
 build/
-.dart_tool/
-.packages
+*.spec.bak
+
+# Virtual environments
+venv/
+.venv/
+env/
 
 # IDE
 .idea/
 .vscode/
-*.iml
+*.swp
+*.swo
+*~
 
-# macOS
+# OS
 .DS_Store
+Thumbs.db
+desktop.ini
 
-# Generated
-*.g.dart
-*.freezed.dart
+# PyInstaller build artifacts
+build/
+dist/
+*.spec.bak
+
+# Logs
+*.log
