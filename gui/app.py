@@ -1,5 +1,4 @@
 import customtkinter as ctk
-import threading
 DND_SUPPORTED = False
 
 from aegis_vault.core.credentials import CredentialManager
@@ -9,14 +8,6 @@ from aegis_vault.core.queue_worker import QueueWorker
 from aegis_vault.utils.logger import logger
 from aegis_vault.gui.theme import THEME
 from aegis_vault.gui.hover import apply_bubble_hover
-
-from aegis_vault.gui.login import LoginFrame
-from aegis_vault.gui.dashboard import DashboardFrame
-from aegis_vault.gui.sidebar import SidebarFrame
-from aegis_vault.gui.upload import UploadFrame
-from aegis_vault.gui.url_upload import URLUploadFrame
-from aegis_vault.gui.explorer import ExplorerFrame
-from aegis_vault.gui.files import FilesTab
 
 COLOR_MAIN_BG  = THEME['main_bg']
 COLOR_CARD_BG  = THEME['card_bg']
@@ -59,6 +50,7 @@ class AppGUI(DnDWindow):
 
     def show_login(self):
         self.clear_view()
+        from aegis_vault.gui.login import LoginFrame
         LoginFrame(self.container, self.start_session).pack(fill="both", expand=True)
 
     def start_session(self, access, secret):
@@ -77,6 +69,7 @@ class AppGUI(DnDWindow):
     def show_workspace(self):
         self.clear_view()
 
+        from aegis_vault.gui.sidebar import SidebarFrame
         self.sidebar = SidebarFrame(
             self.container, self.queue_worker, self.storage_engine,
             self.on_folder_selected, self.logout
@@ -139,27 +132,10 @@ class AppGUI(DnDWindow):
         self.content_frame = ctk.CTkFrame(main_area, fg_color="transparent")
         self.content_frame.pack(fill="both", expand=True, padx=20, pady=12)
 
-        self.dashboard_tab = DashboardFrame(self.content_frame, on_navigate=self._switch_tab,
-                                           storage_engine=self.storage_engine)
-        self.upload_tab    = UploadFrame(self.content_frame, self.queue_worker,
-                                          self.storage_engine, self.crypto_engine)
-        self.url_upload_tab = URLUploadFrame(self.content_frame, self.queue_worker,
-                                              self.storage_engine, self.crypto_engine)
-        self.explorer_tab  = ExplorerFrame(self.content_frame, self.queue_worker,
-                                            self.storage_engine, self.crypto_engine)
-        self.files_tab     = FilesTab(self.content_frame, self.queue_worker,
-                                       self.storage_engine)
-
-        self._tab_frames = [
-            self.dashboard_tab,
-            self.upload_tab,
-            self.url_upload_tab,
-            self.explorer_tab,
-            self.files_tab,
-        ]
-
-        if self._preloaded_folders is not None:
-            self.files_tab.set_preloaded_folders(self._preloaded_folders)
+        from aegis_vault.gui.dashboard import DashboardFrame
+        dashboard_tab = DashboardFrame(self.content_frame, on_navigate=self._switch_tab,
+                                       storage_engine=self.storage_engine)
+        self._tab_frames = [dashboard_tab, None, None, None, None]
 
         self._tab_frames[0].pack(fill="both", expand=True)
 
@@ -193,11 +169,33 @@ class AppGUI(DnDWindow):
                               text_color=THEME['text_sub'])
 
         old_frame = self._tab_frames[old_index] if old_index < len(self._tab_frames) else None
+
+        self._ensure_tab(index)
+
         new_frame = self._tab_frames[index]
 
         if old_frame:
             old_frame.pack_forget()
         new_frame.pack(fill="both", expand=True)
+
+    def _ensure_tab(self, index):
+        if self._tab_frames[index] is not None:
+            return
+        if index == 1:
+            from aegis_vault.gui.upload import UploadFrame
+            self._tab_frames[index] = UploadFrame(self.content_frame, self.queue_worker, self.storage_engine, self.crypto_engine)
+        elif index == 2:
+            from aegis_vault.gui.url_upload import URLUploadFrame
+            self._tab_frames[index] = URLUploadFrame(self.content_frame, self.queue_worker, self.storage_engine, self.crypto_engine)
+        elif index == 3:
+            from aegis_vault.gui.explorer import ExplorerFrame
+            self._tab_frames[index] = ExplorerFrame(self.content_frame, self.queue_worker, self.storage_engine, self.crypto_engine)
+            if self._tab_frames[4] is None:
+                from aegis_vault.gui.files import FilesTab
+                self._tab_frames[4] = FilesTab(self.content_frame, self.queue_worker, self.storage_engine)
+        elif index == 4:
+            from aegis_vault.gui.files import FilesTab
+            self._tab_frames[index] = FilesTab(self.content_frame, self.queue_worker, self.storage_engine)
 
     def _open_settings(self):
         from aegis_vault.gui.settings import SettingsWindow
@@ -208,19 +206,31 @@ class AppGUI(DnDWindow):
 
     def _sync_handle_queue_update(self, task_name, status, result):
         if task_name in ("_process_single_upload",):
-            self.upload_tab.on_task_update(status, result)
+            if self._tab_frames[1] is None:
+                self._ensure_tab(1)
+            self._tab_frames[1].on_task_update(status, result)
         elif task_name == "_process_url_upload":
-            self.url_upload_tab.on_task_update(status, result)
+            if self._tab_frames[2] is None:
+                self._ensure_tab(2)
+            self._tab_frames[2].on_task_update(status, result)
         elif task_name in ("_fetch_metadata", "_download_encrypted",
                            "_download_encrypted_diff", "_process_delete_encrypted"):
-            self.explorer_tab.on_task_update(status, result)
+            if self._tab_frames[3] is None:
+                self._ensure_tab(3)
+            self._tab_frames[3].on_task_update(status, result)
         elif task_name in ("_fetch_files", "_download_plain", "_process_delete_unencrypted"):
-            self.files_tab.on_task_update(status, result)
+            if self._tab_frames[4] is None:
+                self._ensure_tab(4)
+            self._tab_frames[4].on_task_update(status, result)
 
     def on_folder_selected(self, folder_name):
         self._switch_tab(3)
-        self.explorer_tab.load_folder(folder_name)
-        self.files_tab.load_folder(folder_name)
+        explorer = self._tab_frames[3]
+        files = self._tab_frames[4]
+        if explorer:
+            explorer.load_folder(folder_name)
+        if files:
+            files.load_folder(folder_name)
 
     def logout(self):
         logger.info("Logging out...")
