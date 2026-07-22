@@ -367,23 +367,29 @@ class SidebarFrame(ctk.CTkFrame):
         self.on_folder_select(name)
 
     def _update_storage_usage(self, folders):
-        total_bytes = 0
-        for folder in folders:
-            try:
-                data = self.storage._get_bucket_metadata(folder)
-                if data and isinstance(data, dict):
-                    for f in data.get("files", []):
-                        size = f.get("size", 0)
-                        if isinstance(size, (int, str)):
-                            try:
-                                total_bytes += int(size)
-                            except (ValueError, TypeError):
-                                pass
-            except Exception:
-                pass
-        pct = min(total_bytes / (10 * 1024**4) * 100, 100) if total_bytes > 0 else 0
-        self.donut.set_percent(pct)
-        self.used_lbl.configure(text=self._format_storage(total_bytes))
+        self.donut.set_percent(0)
+        self.used_lbl.configure(text="…")
+
+        def calc():
+            total = 0
+            for folder in folders[:10]:
+                try:
+                    data = self.storage._get_bucket_metadata(folder)
+                    if data and isinstance(data, dict):
+                        for f in data.get("files", []):
+                            s = f.get("size", 0)
+                            if isinstance(s, (int, str)):
+                                try:
+                                    total += int(s)
+                                except (ValueError, TypeError):
+                                    pass
+                except Exception:
+                    pass
+            pct = min(total / (10 * 1024**4) * 100, 100) if total > 0 else 0
+            self.after(0, lambda: self.donut.set_percent(pct))
+            self.after(0, lambda: self.used_lbl.configure(text=self._format_storage(total)))
+
+        threading.Thread(target=calc, daemon=True).start()
 
     @staticmethod
     def _format_storage(size_bytes):

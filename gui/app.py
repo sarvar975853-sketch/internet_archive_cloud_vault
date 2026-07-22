@@ -134,7 +134,8 @@ class AppGUI(DnDWindow):
 
         from aegis_vault.gui.dashboard import DashboardFrame
         dashboard_tab = DashboardFrame(self.content_frame, on_navigate=self._switch_tab,
-                                       storage_engine=self.storage_engine)
+                                       storage_engine=self.storage_engine,
+                                       folders=self._preloaded_folders)
         self._tab_frames = [dashboard_tab, None, None, None, None]
 
         self._tab_frames[0].pack(fill="both", expand=True)

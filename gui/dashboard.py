@@ -1,6 +1,4 @@
 import customtkinter as ctk
-import threading
-import time
 from aegis_vault.utils.logger import logger
 from aegis_vault.gui.theme import THEME
 from aegis_vault.gui.hover import apply_bubble_hover
@@ -20,13 +18,15 @@ COLOR_PRIMARY      = THEME['primary']
 
 
 class DashboardFrame(ctk.CTkFrame):
-    def __init__(self, master, on_navigate=None, storage_engine=None):
+    def __init__(self, master, on_navigate=None, storage_engine=None, folders=None):
         super().__init__(master, fg_color="transparent")
         self.on_navigate = on_navigate
         self.storage_engine = storage_engine
         self._stat_vars = {}
         self.build_ui()
-        self.after(300, self._load_stats_background)
+        if folders:
+            self.after(50, lambda: self._update_stats(
+                len(folders), "—", "—", [(f, "—") for f in folders]))
 
     def build_ui(self):
         self.scroll = ctk.CTkScrollableFrame(
@@ -209,28 +209,6 @@ class DashboardFrame(ctk.CTkFrame):
                          text_color=COLOR_TEXT_SUB, wraplength=200,
                          justify="left").pack(anchor="w")
 
-    def _load_stats_background(self):
-        if not self.storage_engine:
-            return
-
-        def load():
-            try:
-                folders = self.storage_engine.scan_user_folders()
-                if not folders:
-                    return
-
-                folder_details = [(f, "—") for f in folders]
-
-                try:
-                    self.after(0, lambda: self._update_stats(
-                        len(folders), "—", "—", folder_details))
-                except Exception:
-                    pass
-            except Exception as e:
-                logger.error(f"Dashboard stats load failed: {e}")
-
-        threading.Thread(target=load, daemon=True).start()
-
     def _update_stats(self, folder_count, file_count, total_bytes, folder_details):
         folders_var, folders_sub = self._stat_vars["folders"]
         files_var, files_sub = self._stat_vars["files"]
@@ -268,7 +246,7 @@ class DashboardFrame(ctk.CTkFrame):
             ctk.CTkLabel(row, text=folder,
                          font=ctk.CTkFont(size=11),
                          text_color=COLOR_TEXT_MAIN).pack(side="left", padx=(4, 0))
-            ctk.CTkLabel(row, text=f"{folder_files} file{'s' if folder_files != 1 else ''}",
+            ctk.CTkLabel(row, text=folder_files if isinstance(folder_files, str) else f"{folder_files} file{'s' if folder_files != 1 else ''}",
                          font=ctk.CTkFont(size=9),
                          text_color=COLOR_TEXT_SUB).pack(side="right")
 
